@@ -89,7 +89,6 @@ export default function CVWizard() {
                   {currentStep === 'upload' && 'Step 1: Upload Resume'}
                   {currentStep === 'job-description' && 'Step 2: Job Description'}
                   {currentStep === 'ai-enhance' && 'Step 3: AI Enhancement'}
-                  {currentStep === 'template-select' && 'Step 4: Select Template'}
                 </h3>
               </div>
 
