@@ -1,0 +1,239 @@
+'use client';
+
+import { useState, useCallback } from 'react';
+import { CVData } from '@/types/cv';
+
+interface UploadStepProps {
+  onDataExtracted: (data: Partial<CVData>) => void;
+  onNext: () => void;
+  theme?: 'dark' | 'light';
+}
+
+export default function UploadStep({ onDataExtracted, onNext, theme = 'dark' }: UploadStepProps) {
+  const isDark = theme === 'dark';
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+
+  const handleDrag = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
+
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    },
+    []
+  );
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
+  };
+
+  const handleFile = async (uploadedFile: File) => {
+    setError(null);
+    setFile(uploadedFile);
+
+    // Validate file type
+    const validTypes = ['application/json', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const validExtensions = ['.json', '.pdf', '.docx'];
+
+    const isValidType = validTypes.includes(uploadedFile.type) ||
+      validExtensions.some(ext => uploadedFile.name.toLowerCase().endsWith(ext));
+
+    if (!isValidType) {
+      setError('Invalid file type. Please upload JSON, PDF, or DOCX file.');
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      // Parse the file
+      const { parseLinkedInResume } = await import('@/lib/linkedinExtractor');
+      const extractedData = await parseLinkedInResume(uploadedFile);
+
+      // Pass data to parent
+      onDataExtracted(extractedData);
+
+      // Auto-advance after a brief delay
+      setTimeout(() => {
+        setUploading(false);
+      }, 500);
+    } catch (err: any) {
+      setUploading(false);
+      setError(err.message || 'Failed to parse file. Please try again.');
+    }
+  };
+
+  const handleSkip = () => {
+    // Skip with empty data
+    onDataExtracted({});
+    onNext();
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto px-6 py-12">
+      <div className="text-center mb-12">
+        <h1
+          className={`text-5xl font-black mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}
+        >
+          Upload Your Resume
+        </h1>
+        <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          Upload your LinkedIn export (JSON, PDF, or DOCX) to get started
+        </p>
+      </div>
+
+      {/* Upload Area */}
+      <div
+        className={`
+          relative border-4 border-dashed rounded-3xl p-12 text-center
+          ${dragActive
+            ? isDark
+              ? 'border-indigo-500 bg-indigo-500/10'
+              : 'border-indigo-600 bg-indigo-50'
+            : isDark
+            ? 'border-gray-700 hover:border-indigo-500/50'
+            : 'border-gray-300 hover:border-indigo-400'
+          }
+          transition-all cursor-pointer
+          ${isDark ? 'bg-gray-900/50' : 'bg-white'}
+        `}
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
+        onDrop={handleDrop}
+        onClick={() => document.getElementById('file-upload')?.click()}
+      >
+        <input
+          id="file-upload"
+          type="file"
+          className="hidden"
+          accept=".json,.pdf,.docx,application/json,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          onChange={handleChange}
+          disabled={uploading}
+        />
+
+        {uploading ? (
+          <div className="py-8">
+            <div
+              className={`animate-spin h-16 w-16 mx-auto mb-4 border-4 border-t-transparent rounded-full ${
+                isDark ? 'border-indigo-500' : 'border-indigo-600'
+              }`}
+            />
+            <p className={`text-lg ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              Processing your resume...
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Upload Icon */}
+            <svg
+              className={`mx-auto h-24 w-24 mb-6 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}
+              stroke="currentColor"
+              fill="none"
+              viewBox="0 0 48 48"
+            >
+              <path
+                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+
+            {file ? (
+              <div className="mb-6">
+                <p className={`text-lg font-semibold mb-2 ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                  ✓ File Selected
+                </p>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {file.name}
+                </p>
+              </div>
+            ) : (
+              <>
+                <p className={`text-xl font-semibold mb-2 ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+                  Drop your resume here, or click to browse
+                </p>
+                <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+                  Supports JSON, PDF, or DOCX files
+                </p>
+              </>
+            )}
+
+            {error && (
+              <div className="mt-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Instructions */}
+      <div className={`mt-8 p-6 rounded-2xl ${isDark ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-200'}`}>
+        <h3 className={`text-lg font-bold mb-3 ${isDark ? 'text-indigo-400' : 'text-indigo-700'}`}>
+          How to get your LinkedIn data:
+        </h3>
+        <ol className={`space-y-2 text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+          <li>1. Go to LinkedIn Settings → Data Privacy</li>
+          <li>2. Select "Get a copy of your data"</li>
+          <li>3. Choose "Profile" data</li>
+          <li>4. Download the JSON file</li>
+          <li>5. Upload it here!</li>
+        </ol>
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-between items-center mt-12">
+        <button
+          onClick={handleSkip}
+          className={`
+            px-6 py-3 rounded-xl font-medium transition-all
+            ${isDark
+              ? 'text-gray-400 hover:text-white hover:bg-gray-800'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }
+          `}
+        >
+          Skip (Manual Entry)
+        </button>
+
+        <button
+          onClick={onNext}
+          disabled={!file || uploading}
+          className={`
+            px-8 py-3 rounded-xl font-bold transition-all
+            ${!file || uploading
+              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              : isDark
+              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600'
+              : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700'
+            }
+            shadow-lg
+          `}
+        >
+          Continue →
+        </button>
+      </div>
+    </div>
+  );
+}
