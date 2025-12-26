@@ -257,6 +257,15 @@ Before outputting JSON, verify:
 □ No fabricated GitHub/LinkedIn/website URLs based on guessing
 □ No placeholder text like "N/A", "Private", "Coming Soon" in URL fields
 □ Project links are REAL URLs or empty strings
+□ NO DUPLICATE PROTOCOLS - Never write "https://https://" or "http://http://"
+□ If referencing a URL in bio/text, don't add "https://" if the URL already has it
+□ Bio should not contain raw URLs - describe accomplishments, not links
+
+**URL FORMATTING RULES:**
+- URL fields should contain the full URL with protocol: "https://github.com/user"
+- Bio/description text should NOT contain URLs - describe the work, don't link to it
+- If you must mention a domain in text, use the simple form without protocol: "github.com/user"
+- NEVER duplicate the protocol: "https://https://..." is WRONG
 
 Make it IMPRESSIVE. Make it BELIEVABLE. Make it TAILORED. Make them look like THE perfect candidate.
 But NEVER fabricate URLs - accuracy is more important than completeness for links.`;

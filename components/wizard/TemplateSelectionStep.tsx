@@ -9,7 +9,7 @@ import GlassCV from '../cv-templates/GlassCV';
 import MinimalCV from '../cv-templates/MinimalCV';
 import CoverLetter from '../CoverLetter';
 import AIReviewModal from '../AIReviewModal';
-import AIModifierPanel from '../AIModifierPanel';
+import AIModifierFloatingBar from '../AIModifierFloatingBar';
 
 const templates = [
   { id: 'cyber', name: 'Cyber Web3', component: CyberCV, description: 'Modern 3D effects perfect for tech roles' },
@@ -296,21 +296,6 @@ export default function TemplateSelectionStep({
                   </button>
                 </div>
               )}
-
-              {/* AI Modifier Panel */}
-              {canModify && jobDescription && (
-                <div className="mt-6">
-                  <AIModifierPanel
-                    currentResume={currentCV}
-                    currentCoverLetter={currentCoverLetter ? { content: currentCoverLetter, salutation: 'Dear Hiring Manager,', closing: 'Sincerely,' } : undefined}
-                    jobDescription={jobDescription}
-                    files={files}
-                    onResumeModified={handleCVModified}
-                    onCoverLetterModified={handleCoverLetterModified}
-                    theme={theme}
-                  />
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -355,6 +340,19 @@ export default function TemplateSelectionStep({
           cvData={currentCV}
           coverLetter={currentCoverLetter}
           jobDescription={jobDescription}
+          theme={theme}
+        />
+      )}
+
+      {/* AI Modifier Floating Bar */}
+      {canModify && jobDescription && (
+        <AIModifierFloatingBar
+          currentResume={currentCV}
+          currentCoverLetter={currentCoverLetter ? { content: currentCoverLetter, salutation: 'Dear Hiring Manager,', closing: 'Sincerely,' } : undefined}
+          jobDescription={jobDescription}
+          files={files}
+          onResumeModified={handleCVModified}
+          onCoverLetterModified={handleCoverLetterModified}
           theme={theme}
         />
       )}
