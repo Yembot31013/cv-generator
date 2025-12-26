@@ -23,22 +23,30 @@ export default function CVWizard() {
   const [currentStep, setCurrentStep] = useState<WizardStep>("upload");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [partialCV, setPartialCV] = useState<Partial<CVData>>({});
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [jobDescription, setJobDescription] = useState<JobDescription>({
     description: "",
   });
   const [enhancedCV, setEnhancedCV] = useState<CVData | null>(null);
+  const [coverLetter, setCoverLetter] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("cyber");
 
-  const handleDataExtracted = (data: Partial<CVData>) => {
+  const handleDataExtracted = (data: Partial<CVData>, files?: File[]) => {
     setPartialCV(data);
+    if (files) {
+      setUploadedFiles(files);
+    }
   };
 
   const handleJobDescriptionSubmit = (jobDesc: JobDescription) => {
     setJobDescription(jobDesc);
   };
 
-  const handleEnhanced = (data: CVData) => {
+  const handleEnhanced = (data: CVData, coverLetterText?: string) => {
     setEnhancedCV(data);
+    if (coverLetterText) {
+      setCoverLetter(coverLetterText);
+    }
   };
 
   const handleTemplateSelect = async (templateId: string) => {
@@ -270,6 +278,7 @@ export default function CVWizard() {
           <AIEnhancementStep
             partialCV={partialCV}
             jobDescription={jobDescription}
+            uploadedFiles={uploadedFiles}
             onEnhanced={handleEnhanced}
             onBack={previousStep}
             onNext={nextStep}
@@ -280,6 +289,8 @@ export default function CVWizard() {
         {currentStep === "template-select" && enhancedCV && (
           <TemplateSelectionStep
             enhancedCV={enhancedCV}
+            coverLetter={coverLetter}
+            jobDescription={jobDescription}
             onTemplateSelect={handleTemplateSelect}
             onBack={previousStep}
             theme={theme}

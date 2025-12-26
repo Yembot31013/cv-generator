@@ -71,6 +71,12 @@ export interface CVData {
   languages?: { name: string; proficiency: string }[];
 }
 
+export interface CoverLetter {
+  content: string;
+  salutation?: string;
+  closing?: string;
+}
+
 export interface CVTemplateProps {
   data: CVData;
   theme?: 'dark' | 'light';

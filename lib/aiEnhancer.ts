@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import { CVData } from '@/types/cv';
+import { CVData, CoverLetter } from '@/types/cv';
 import { JobDescription } from '@/types/flow';
 
 /**
@@ -13,20 +13,53 @@ export class AIEnhancer {
   }
 
   /**
+   * Convert file to base64 for Gemini API
+   */
+  private async fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /**
    * Enhance CV data based on job description
    * The AI acts as a psychological expert, making intelligent assumptions
    * and filling in details to create a compelling, tailored CV
+   * Optionally accepts files for better accuracy
    */
   async enhanceCV(
     partialCV: Partial<CVData>,
-    jobDescription: JobDescription
+    jobDescription: JobDescription,
+    files?: File[]
   ): Promise<CVData> {
     const prompt = this.buildEnhancementPrompt(partialCV, jobDescription);
 
     try {
+      // Build content array with prompt and optionally files
+      const contents: any[] = [{ text: prompt }];
+
+      // Add files if provided for better accuracy
+      if (files && files.length > 0) {
+        for (const file of files) {
+          const fileData = await this.fileToBase64(file);
+          contents.push({
+            inlineData: {
+              mimeType: file.type,
+              data: fileData
+            }
+          });
+        }
+      }
+
       const response = await this.ai.models.generateContent({
         model: 'gemini-2.0-flash-exp',
-        contents: prompt,
+        contents: contents,
       });
 
       const text = response.text || "";
@@ -234,7 +267,7 @@ Make it IMPRESSIVE. Make it BELIEVABLE. Make it TAILORED. Make them look like TH
   /**
    * Quick enhancement without job description (just cleanup and formatting)
    */
-  async quickEnhance(partialCV: Partial<CVData>): Promise<CVData> {
+  async quickEnhance(partialCV: Partial<CVData>, files?: File[]): Promise<CVData> {
     const prompt = `You are an expert CV formatter. Clean up and complete this CV data, adding reasonable details where needed. Make it professional and complete. Add metrics and details based on common industry standards.
 
 Current CV Data:
@@ -243,9 +276,24 @@ ${JSON.stringify(partialCV, null, 2)}
 Return ONLY a valid JSON object with complete CV data following standard CV structure. Fill in missing details intelligently.`;
 
     try {
+      const contents: any[] = [{ text: prompt }];
+
+      // Add files if provided
+      if (files && files.length > 0) {
+        for (const file of files) {
+          const fileData = await this.fileToBase64(file);
+          contents.push({
+            inlineData: {
+              mimeType: file.type,
+              data: fileData
+            }
+          });
+        }
+      }
+
       const response = await this.ai.models.generateContent({
         model: 'gemini-2.0-flash-exp',
-        contents: prompt,
+        contents: contents,
       });
 
       const text = response.text || "";
@@ -261,6 +309,153 @@ Return ONLY a valid JSON object with complete CV data following standard CV stru
       console.error('Quick Enhancement Error:', error);
       throw new Error('Failed to enhance CV. Please try again.');
     }
+  }
+
+  /**
+   * Generate a personalized cover letter based on CV data and job description
+   * Optionally accepts files for better accuracy
+   */
+  async generateCoverLetter(
+    cvData: CVData,
+    jobDescription: JobDescription,
+    files?: File[]
+  ): Promise<CoverLetter> {
+    const prompt = this.buildCoverLetterPrompt(cvData, jobDescription);
+
+    try {
+      const contents: any[] = [{ text: prompt }];
+
+      // Add files if provided for better accuracy
+      if (files && files.length > 0) {
+        for (const file of files) {
+          const fileData = await this.fileToBase64(file);
+          contents.push({
+            inlineData: {
+              mimeType: file.type,
+              data: fileData
+            }
+          });
+        }
+      }
+
+      const response = await this.ai.models.generateContent({
+        model: 'gemini-2.0-flash-exp',
+        contents: contents,
+      });
+
+      const text = response.text || "";
+
+      // Try to extract structured JSON first
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.content) {
+            return {
+              content: parsed.content,
+              salutation: parsed.salutation || 'Dear Hiring Manager,',
+              closing: parsed.closing || 'Sincerely,',
+            };
+          }
+        } catch (e) {
+          // Fall through to text extraction
+        }
+      }
+
+      // If no JSON, extract the letter content directly
+      // Remove markdown code blocks if present
+      let content = text.replace(/```[\s\S]*?```/g, '').trim();
+      
+      // Extract salutation if present
+      const salutationMatch = content.match(/^(Dear\s+[^,\n]+(?:,|:))/i);
+      const salutation = salutationMatch ? salutationMatch[1] : 'Dear Hiring Manager,';
+      
+      // Extract closing if present
+      const closingMatch = content.match(/(Sincerely|Best regards|Regards|Yours sincerely|Yours truly)[,\s]*$/i);
+      const closing = closingMatch ? closingMatch[1] + ',' : 'Sincerely,';
+
+      return {
+        content: content,
+        salutation,
+        closing,
+      };
+    } catch (error) {
+      console.error('Cover Letter Generation Error:', error);
+      throw new Error('Failed to generate cover letter. Please try again.');
+    }
+  }
+
+  /**
+   * Build the cover letter prompt for Gemini
+   */
+  private buildCoverLetterPrompt(cv: CVData, job: JobDescription): string {
+    return `You are an expert cover letter writer with 20+ years of experience. Your task is to write a compelling, personalized cover letter that perfectly matches a specific job description.
+
+**Job Details:**
+Title: ${job.title || 'Not specified'}
+Company: ${job.company || 'Not specified'}
+Location: ${job.location || 'Not specified'}
+
+**Job Description:**
+${job.description}
+
+**Key Requirements:**
+${job.requirements?.join('\n') || 'Not specified'}
+
+**Key Responsibilities:**
+${job.responsibilities?.join('\n') || 'Not specified'}
+
+**Required Skills:**
+${job.skills?.join(', ') || 'Not specified'}
+
+**Candidate Information:**
+Name: ${cv.personalInfo?.fullName || 'Not specified'}
+Title: ${cv.personalInfo?.title || 'Not specified'}
+Email: ${cv.personalInfo?.email || 'Not specified'}
+Location: ${cv.personalInfo?.location || 'Not specified'}
+
+**Professional Summary:**
+${cv.personalInfo?.bio || 'Not specified'}
+
+**Relevant Experience:**
+${cv.experience?.slice(0, 3).map(exp => `
+- ${exp.position} at ${exp.company} (${exp.startDate} - ${exp.endDate})
+  ${exp.description?.slice(0, 2).join('\n  ')}
+`).join('\n') || 'Not specified'}
+
+**Key Skills:**
+${cv.skills?.map(skill => `${skill.category}: ${skill.items?.slice(0, 5).join(', ')}`).join('\n') || 'Not specified'}
+
+**Your Mission:**
+Write a professional, compelling cover letter that:
+
+1. **Opening Impact**: Start with a strong hook that immediately captures attention
+2. **Personalization**: Reference specific aspects of the job description and company
+3. **Value Proposition**: Clearly articulate why the candidate is perfect for this role
+4. **Relevant Experience**: Highlight 2-3 most relevant experiences that match job requirements
+5. **Skills Alignment**: Connect candidate's skills to job requirements naturally
+6. **Enthusiasm**: Show genuine interest and passion for the role and company
+7. **Professional Tone**: Maintain professional yet engaging tone throughout
+8. **Closing**: End with a strong call to action
+
+**CRITICAL RULES:**
+- Keep it concise (3-4 paragraphs, ~300-400 words)
+- Use confident, achievement-focused language
+- Reference specific job requirements and how candidate meets them
+- Include specific examples from candidate's experience
+- Make it feel authentic and personalized
+- Use proper business letter format
+- Include appropriate salutation and closing
+
+**Output Format:**
+Return a JSON object with this structure:
+{
+  "salutation": "Dear [Hiring Manager/Name],",
+  "content": "Full cover letter text with proper paragraphs",
+  "closing": "Sincerely,"
+}
+
+OR if you prefer, return the cover letter as plain text with proper formatting. The content should be ready to use and professional.`;
   }
 }
 
