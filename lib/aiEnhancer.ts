@@ -150,6 +150,34 @@ Transform this CV into a stunning, tailored resume that:
 - It is BETTER to have an empty field than a fake/fabricated URL
 - If you see a project is "private" or has no URL, leave the link field as ""
 
+**🧠 CONTEXT-AWARE URL INTELLIGENCE:**
+You must understand the RELATIONSHIP between URLs and the person's role:
+
+**COMPANY URL vs PERSONAL WEBSITE:**
+- If person is an EMPLOYEE (Developer, Manager, Engineer, etc.) at a company:
+  → The company's website is NOT their personal website
+  → like for example, Don't put "donclemtech.com" as personal website if they just WORK there
+  
+- If person is a FOUNDER/OWNER/CEO of a company:
+  → The company's website CAN be their personal representation
+  → It's valid to use the company URL as their website
+
+**HOW TO DETECT OWNERSHIP:**
+- Look at job titles in the experience/work history
+- "Founder", "CEO", "Co-founder", "Owner", "Principal" = They OWN it
+- "Developer", "Engineer", "Manager", "Designer", etc. = They're an EMPLOYEE
+
+**EXAMPLE:**
+If you see in the source files:
+- URL: "https://www.donclemtech.com"
+- Experience: "Senior Developer at Don-Clem Technology"
+→ This person WORKS at the company. The URL should NOT go in their personal website field.
+
+But if you see:
+- URL: "https://www.donclemtech.com"
+- Experience: "Founder & CEO at Don-Clem Technology"
+→ They OWN the company. The URL CAN go in their personal website field.
+
 **Examples of FORBIDDEN fake URLs (DO NOT DO THIS):**
 - https://github.com/johndoe ❌ (guessed from name)
 - https://linkedin.com/in/john-doe ❌ (guessed from name)
@@ -157,9 +185,11 @@ Transform this CV into a stunning, tailored resume that:
 - Private Repository ❌ (not a URL)
 - N/A ❌ (not a URL)
 - https://company-name.github.io ❌ (guessed from company)
+- Employer's website as personal website ❌ (if they're just an employee)
 
 **Correct approach:**
-- If found in file: "https://github.com/actual-username/real-repo" ✓
+- If found in file AND it's their personal/portfolio URL: use it ✓
+- If found but it's their employer's URL (and they're not the owner): "" ✓
 - If NOT found: "" ✓ (empty string)
 
 **CRITICAL RULES:**

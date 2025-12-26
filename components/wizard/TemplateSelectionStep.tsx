@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { CVData } from '@/types/cv';
+import { useState, useEffect } from 'react';
+import { CVData, CoverLetter as CoverLetterType } from '@/types/cv';
 import { JobDescription } from '@/types/flow';
 import CyberCV from '../cv-templates/CyberCV';
 import NeonCV from '../cv-templates/NeonCV';
@@ -9,6 +9,7 @@ import GlassCV from '../cv-templates/GlassCV';
 import MinimalCV from '../cv-templates/MinimalCV';
 import CoverLetter from '../CoverLetter';
 import AIReviewModal from '../AIReviewModal';
+import AIModifierPanel from '../AIModifierPanel';
 
 const templates = [
   { id: 'cyber', name: 'Cyber Web3', component: CyberCV, description: 'Modern 3D effects perfect for tech roles' },
@@ -21,7 +22,10 @@ interface TemplateSelectionStepProps {
   enhancedCV: CVData;
   coverLetter?: string | null;
   jobDescription?: JobDescription;
+  files?: File[];
   onTemplateSelect: (templateId: string) => void;
+  onCVChange?: (newCV: CVData) => void;
+  onCoverLetterChange?: (newCoverLetter: string) => void;
   onBack: () => void;
   theme?: 'dark' | 'light';
 }
@@ -30,7 +34,10 @@ export default function TemplateSelectionStep({
   enhancedCV,
   coverLetter,
   jobDescription,
+  files,
   onTemplateSelect,
+  onCVChange,
+  onCoverLetterChange,
   onBack,
   theme = 'dark'
 }: TemplateSelectionStepProps) {
@@ -39,6 +46,31 @@ export default function TemplateSelectionStep({
   const [previewTheme, setPreviewTheme] = useState<'dark' | 'light'>(theme);
   const [activeTab, setActiveTab] = useState<'resume' | 'cover-letter'>('resume');
   const [showReviewModal, setShowReviewModal] = useState(false);
+  
+  // Local state for modifiable data
+  const [currentCV, setCurrentCV] = useState<CVData>(enhancedCV);
+  const [currentCoverLetter, setCurrentCoverLetter] = useState<string | undefined>(coverLetter || undefined);
+  
+  // Update local state when props change
+  useEffect(() => {
+    setCurrentCV(enhancedCV);
+  }, [enhancedCV]);
+  
+  useEffect(() => {
+    setCurrentCoverLetter(coverLetter || undefined);
+  }, [coverLetter]);
+  
+  // Handle CV modifications
+  const handleCVModified = (newCV: CVData) => {
+    setCurrentCV(newCV);
+    onCVChange?.(newCV);
+  };
+  
+  // Handle cover letter modifications
+  const handleCoverLetterModified = (newCoverLetter: CoverLetterType) => {
+    setCurrentCoverLetter(newCoverLetter.content);
+    onCoverLetterChange?.(newCoverLetter.content);
+  };
 
   const handleSelect = () => {
     onTemplateSelect(selectedTemplate);
@@ -46,8 +78,9 @@ export default function TemplateSelectionStep({
 
   const SelectedTemplateComponent = templates.find(t => t.id === selectedTemplate)?.component || CyberCV;
 
-  // Check if we have a job description to enable AI review
+  // Check if we have a job description to enable AI features
   const canReview = jobDescription && jobDescription.description && jobDescription.description.trim().length > 0;
+  const canModify = jobDescription !== undefined;
 
   return (
     <div className="min-h-screen">
@@ -263,6 +296,21 @@ export default function TemplateSelectionStep({
                   </button>
                 </div>
               )}
+
+              {/* AI Modifier Panel */}
+              {canModify && jobDescription && (
+                <div className="mt-6">
+                  <AIModifierPanel
+                    currentResume={currentCV}
+                    currentCoverLetter={currentCoverLetter ? { content: currentCoverLetter, salutation: 'Dear Hiring Manager,', closing: 'Sincerely,' } : undefined}
+                    jobDescription={jobDescription}
+                    files={files}
+                    onResumeModified={handleCVModified}
+                    onCoverLetterModified={handleCoverLetterModified}
+                    theme={theme}
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -271,15 +319,15 @@ export default function TemplateSelectionStep({
         <div className={`flex-1 overflow-y-auto ${activeTab === 'cover-letter' ? '' : ''}`}>
           <div id="cv-preview" className="min-h-screen">
             {activeTab === 'resume' ? (
-              <SelectedTemplateComponent data={enhancedCV} theme={previewTheme} />
-            ) : coverLetter ? (
+              <SelectedTemplateComponent data={currentCV} theme={previewTheme} />
+            ) : currentCoverLetter ? (
               <CoverLetter
-                content={coverLetter}
+                content={currentCoverLetter}
                 personalInfo={{
-                  fullName: enhancedCV.personalInfo?.fullName,
-                  email: enhancedCV.personalInfo?.email,
-                  phone: enhancedCV.personalInfo?.phone,
-                  location: enhancedCV.personalInfo?.location,
+                  fullName: currentCV.personalInfo?.fullName,
+                  email: currentCV.personalInfo?.email,
+                  phone: currentCV.personalInfo?.phone,
+                  location: currentCV.personalInfo?.location,
                 }}
                 jobInfo={{
                   company: jobDescription?.company,
@@ -304,8 +352,8 @@ export default function TemplateSelectionStep({
         <AIReviewModal
           isOpen={showReviewModal}
           onClose={() => setShowReviewModal(false)}
-          cvData={enhancedCV}
-          coverLetter={coverLetter}
+          cvData={currentCV}
+          coverLetter={currentCoverLetter}
           jobDescription={jobDescription}
           theme={theme}
         />
