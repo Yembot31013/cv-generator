@@ -13,7 +13,7 @@ import {
   getLevelEmoji,
   KeywordMatch,
 } from "@/types/review";
-import { createAIReviewer } from "@/lib/aiReviewer";
+import { createAIReviewer, ReviewSession } from "@/lib/aiReviewer";
 import { useApiKey } from "@/contexts/ApiKeyContext";
 
 interface AIReviewModalProps {
@@ -541,7 +541,7 @@ function SectionReviewCard({
 }
 
 // Loading Animation
-function LoadingAnimation({ isDark }: { isDark: boolean }) {
+function LoadingAnimation({ isDark, isReAnalysis = false, reviewNumber = 1 }: { isDark: boolean; isReAnalysis?: boolean; reviewNumber?: number }) {
   return (
     <div className="flex flex-col items-center justify-center py-20">
       <div className="relative w-32 h-32 mb-8">
@@ -560,7 +560,7 @@ function LoadingAnimation({ isDark }: { isDark: boolean }) {
           animate-pulse flex items-center justify-center
         `}
         >
-          <span className="text-4xl">🔍</span>
+          <span className="text-4xl">{isReAnalysis ? "🔄" : "🔍"}</span>
         </div>
       </div>
       <h3
@@ -568,10 +568,13 @@ function LoadingAnimation({ isDark }: { isDark: boolean }) {
           isDark ? "text-white" : "text-gray-900"
         }`}
       >
-        Analyzing Your Application
+        {isReAnalysis ? `Re-analyzing (Review #${reviewNumber})` : "Analyzing Your Application"}
       </h3>
-      <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-        Our AI is reviewing your resume and cover letter...
+      <p className={`text-sm text-center max-w-md ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+        {isReAnalysis 
+          ? "Comparing your resume with previous feedback to track your progress..."
+          : "Our AI is reviewing your resume and cover letter..."
+        }
       </p>
       <div
         className={`
@@ -617,6 +620,7 @@ export default function AIReviewModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [review, setReview] = useState<AIReviewResult | null>(null);
+  const [session, setSession] = useState<ReviewSession | undefined>(undefined);
   const [activeTab, setActiveTab] = useState<
     "resume" | "cover-letter" | "keywords"
   >("resume");
@@ -638,12 +642,15 @@ export default function AIReviewModal({
 
     try {
       const reviewer = createAIReviewer(apiKey);
-      const result = await reviewer.reviewApplicationMaterials(
+      // Pass the current session for context-aware re-analysis
+      const { result, session: updatedSession } = await reviewer.reviewApplicationMaterials(
         cvData,
         jobDescription,
-        coverLetter || undefined
+        coverLetter || undefined,
+        session // Pass existing session for re-analysis context
       );
       setReview(result);
+      setSession(updatedSession); // Store updated session with history
     } catch (err) {
       setError(
         err instanceof Error
@@ -707,13 +714,25 @@ export default function AIReviewModal({
                 <span className="text-2xl">🎯</span>
               </div>
               <div>
-                <h2
-                  className={`text-2xl font-black ${
-                    isDark ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  AI Application Review
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2
+                    className={`text-2xl font-black ${
+                      isDark ? "text-white" : "text-gray-900"
+                    }`}
+                  >
+                    AI Application Review
+                  </h2>
+                  {session && session.reviewCount > 1 && (
+                    <span
+                      className={`
+                        text-xs px-2 py-0.5 rounded-full font-medium
+                        ${isDark ? "bg-indigo-500/20 text-indigo-300" : "bg-indigo-100 text-indigo-700"}
+                      `}
+                    >
+                      Review #{session.reviewCount}
+                    </span>
+                  )}
+                </div>
                 <p
                   className={`text-sm ${
                     isDark ? "text-gray-400" : "text-gray-600"
@@ -732,8 +751,10 @@ export default function AIReviewModal({
               {review && (
                 <button
                   onClick={handleReview}
+                  disabled={isLoading}
                   className={`
-                    px-4 py-2 rounded-lg font-medium text-sm transition-all
+                    px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2
+                    ${isLoading ? "opacity-50 cursor-not-allowed" : ""}
                     ${
                       isDark
                         ? "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
@@ -741,7 +762,8 @@ export default function AIReviewModal({
                     }
                   `}
                 >
-                  🔄 Re-analyze
+                  <span className={isLoading ? "animate-spin" : ""}>🔄</span>
+                  {isLoading ? "Analyzing..." : `Re-analyze${session && session.reviewCount > 0 ? ` (#${session.reviewCount + 1})` : ""}`}
                 </button>
               )}
               <button
@@ -827,7 +849,11 @@ export default function AIReviewModal({
           }`}
         >
           {isLoading ? (
-            <LoadingAnimation isDark={isDark} />
+            <LoadingAnimation 
+              isDark={isDark} 
+              isReAnalysis={session !== undefined && session.reviewCount > 0}
+              reviewNumber={(session?.reviewCount || 0) + 1}
+            />
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-20">
               <div

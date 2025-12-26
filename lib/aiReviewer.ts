@@ -4,7 +4,25 @@ import { JobDescription } from '@/types/flow';
 import { AIReviewResult, getScoreLevel } from '@/types/review';
 
 /**
+ * Chat message for review history
+ */
+export interface ReviewChatMessage {
+  role: 'user' | 'model';
+  parts: { text: string }[];
+}
+
+/**
+ * Review session that maintains conversation context
+ */
+export interface ReviewSession {
+  history: ReviewChatMessage[];
+  reviewCount: number;
+  lastReviewResult?: AIReviewResult;
+}
+
+/**
  * AI-powered Resume and Cover Letter Reviewer using Google Gemini
+ * Uses chat API to maintain context between re-analyses
  */
 export class AIReviewer {
   private ai: GoogleGenAI;
@@ -15,34 +33,170 @@ export class AIReviewer {
 
   /**
    * Review resume and cover letter against job description
+   * Supports context-aware re-analysis through chat history
    */
   async reviewApplicationMaterials(
     cvData: CVData,
     jobDescription: JobDescription,
-    coverLetter?: string
-  ): Promise<AIReviewResult> {
-    const prompt = this.buildReviewPrompt(cvData, jobDescription, coverLetter);
+    coverLetter?: string,
+    session?: ReviewSession
+  ): Promise<{ result: AIReviewResult; session: ReviewSession }> {
+    const isReAnalysis = session && session.reviewCount > 0;
+    const reviewNumber = (session?.reviewCount || 0) + 1;
+    
+    // Build the appropriate prompt based on whether this is first review or re-analysis
+    const prompt = isReAnalysis 
+      ? this.buildReAnalysisPrompt(cvData, jobDescription, coverLetter, session!)
+      : this.buildReviewPrompt(cvData, jobDescription, coverLetter);
 
     try {
-      const response = await this.ai.models.generateContent({
-        model: 'gemini-2.0-flash-exp',
-        contents: [{ text: prompt }],
-      });
+      let responseText: string;
+      let newHistory: ReviewChatMessage[];
 
-      const text = response.text || "";
+      if (isReAnalysis && session!.history.length > 0) {
+        // Use chat API with history for re-analysis
+        const chat = this.ai.chats.create({
+          model: 'gemini-2.0-flash-exp',
+          history: session!.history,
+        });
+
+        const response = await chat.sendMessage({
+          message: prompt,
+        });
+
+        responseText = response.text || "";
+        
+        // Update history with the new exchange
+        newHistory = [
+          ...session!.history,
+          { role: 'user', parts: [{ text: prompt }] },
+          { role: 'model', parts: [{ text: responseText }] },
+        ];
+      } else {
+        // First review - use single generation
+        const response = await this.ai.models.generateContent({
+          model: 'gemini-2.0-flash-exp',
+          contents: [{ text: prompt }],
+        });
+
+        responseText = response.text || "";
+        
+        // Initialize history with this first exchange
+        newHistory = [
+          { role: 'user', parts: [{ text: prompt }] },
+          { role: 'model', parts: [{ text: responseText }] },
+        ];
+      }
 
       // Extract JSON from the response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('Failed to extract JSON from AI response');
       }
 
       const reviewData = JSON.parse(jsonMatch[0]);
-      return this.validateAndCompleteReview(reviewData, jobDescription);
+      const result = this.validateAndCompleteReview(reviewData, jobDescription);
+
+      // Return both the result and updated session
+      return {
+        result,
+        session: {
+          history: newHistory,
+          reviewCount: reviewNumber,
+          lastReviewResult: result,
+        },
+      };
     } catch (error) {
       console.error('AI Review Error:', error);
       throw new Error('Failed to review application materials. Please try again.');
     }
+  }
+
+  /**
+   * Build re-analysis prompt that provides context about previous review
+   */
+  private buildReAnalysisPrompt(
+    cv: CVData,
+    job: JobDescription,
+    coverLetter: string | undefined,
+    session: ReviewSession
+  ): string {
+    const previousResult = session.lastReviewResult;
+    
+    return `**🔄 RE-ANALYSIS REQUEST (Review #${session.reviewCount + 1})**
+
+The user has clicked "Re-analyze" after seeing your previous review. This means:
+1. They may have made changes to address your feedback
+2. OR they want a fresh perspective / second opinion
+3. They're counting on you to track their progress
+
+**WHAT YOU PREVIOUSLY SAID (Review #${session.reviewCount}):**
+- Overall Score: ${previousResult?.resumeReview.overallScore}/100 (${previousResult?.resumeReview.overallLevel})
+- Summary: "${previousResult?.resumeReview.summary}"
+
+**Critical Issues You Previously Identified:**
+${previousResult?.resumeReview.criticalIssues.length ? 
+  previousResult.resumeReview.criticalIssues.map((issue, i) => `${i + 1}. ${issue}`).join('\n') : 
+  '- None identified'}
+
+**Quick Wins You Previously Suggested:**
+${previousResult?.resumeReview.quickWins.length ?
+  previousResult.resumeReview.quickWins.map((win, i) => `${i + 1}. ${win}`).join('\n') :
+  '- None suggested'}
+
+**Previous Contact Info Score:** ${previousResult?.resumeReview.sectionReviews.find(s => s.sectionName === 'Contact Information')?.score || 'N/A'}/100
+
+---
+
+**YOUR RE-ANALYSIS INSTRUCTIONS:**
+
+1. **COMPARE THE CURRENT DATA WITH YOUR PREVIOUS FEEDBACK:**
+   - Look at the resume data below - has ANYTHING changed since your last review?
+   - If the email was fake before, is it STILL fake?
+   - If the phone had X's, does it STILL have X's?
+
+2. **BE CONSISTENT:**
+   - If an issue existed before and STILL exists, flag it again
+   - Don't suddenly say something is fine if it wasn't fixed
+   - Don't contradict yourself unless there's a real change
+
+3. **ACKNOWLEDGE IMPROVEMENTS:**
+   - If something was fixed, celebrate it! "Great job updating your email to a real address"
+   - Show the user their progress
+
+4. **AVOID INFINITE LOOPS:**
+   - If this is review #${session.reviewCount + 1} and the same issues persist, be direct:
+     "This is review #${session.reviewCount + 1} and [specific issue] still hasn't been fixed. Please update [specific field] before re-analyzing."
+   - Help them understand they need to actually make changes
+
+5. **SCORE CHANGES SHOULD REFLECT REALITY:**
+   - If nothing changed → Score should be similar (±5 points for perspective)
+   - If issues were fixed → Score should improve
+   - If new issues appeared → Score should drop
+   - Explain WHY the score changed (or didn't)
+
+---
+
+**CURRENT RESUME DATA (Review this against your previous feedback):**
+
+${JSON.stringify(cv, null, 2)}
+
+${coverLetter ? `**CURRENT COVER LETTER:**
+${coverLetter}` : '**COVER LETTER:** Not provided'}
+
+**JOB BEING APPLIED FOR:**
+Title: ${job.title || 'Not specified'}
+Company: ${job.company || 'Not specified'}
+
+---
+
+Now provide your re-analysis. Remember:
+- You have memory of what you said before
+- Be consistent and track progress
+- Help the user improve, don't just repeat the same feedback if nothing changed
+- If they haven't made changes, gently tell them to actually update the resume before re-analyzing
+
+Respond with the same JSON format as before.`;
   }
 
   /**
