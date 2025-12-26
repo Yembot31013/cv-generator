@@ -8,6 +8,7 @@ import NeonCV from '../cv-templates/NeonCV';
 import GlassCV from '../cv-templates/GlassCV';
 import MinimalCV from '../cv-templates/MinimalCV';
 import CoverLetter from '../CoverLetter';
+import AIReviewModal from '../AIReviewModal';
 
 const templates = [
   { id: 'cyber', name: 'Cyber Web3', component: CyberCV, description: 'Modern 3D effects perfect for tech roles' },
@@ -37,12 +38,16 @@ export default function TemplateSelectionStep({
   const [selectedTemplate, setSelectedTemplate] = useState<string>('cyber');
   const [previewTheme, setPreviewTheme] = useState<'dark' | 'light'>(theme);
   const [activeTab, setActiveTab] = useState<'resume' | 'cover-letter'>('resume');
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   const handleSelect = () => {
     onTemplateSelect(selectedTemplate);
   };
 
   const SelectedTemplateComponent = templates.find(t => t.id === selectedTemplate)?.component || CyberCV;
+
+  // Check if we have a job description to enable AI review
+  const canReview = jobDescription && jobDescription.description && jobDescription.description.trim().length > 0;
 
   return (
     <div className="min-h-screen">
@@ -62,7 +67,7 @@ export default function TemplateSelectionStep({
               </p>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               {/* Tabs */}
               {coverLetter && (
                 <div className={`flex gap-2 rounded-lg p-1 ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}>
@@ -99,6 +104,33 @@ export default function TemplateSelectionStep({
                     ✉️ Cover Letter
                   </button>
                 </div>
+              )}
+
+              {/* AI Review Button */}
+              {canReview && (
+                <button
+                  onClick={() => setShowReviewModal(true)}
+                  className={`
+                    group relative px-4 py-2 rounded-lg font-medium transition-all overflow-hidden
+                    ${isDark
+                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-indigo-500/25'
+                      : 'bg-gradient-to-r from-violet-500 to-indigo-500 text-white hover:from-violet-400 hover:to-indigo-400 shadow-lg shadow-indigo-500/30'
+                    }
+                  `}
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    <span className="text-lg">🎯</span>
+                    <span>AI Review</span>
+                    <span className={`
+                      text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase
+                      ${isDark ? 'bg-white/20' : 'bg-white/30'}
+                    `}>
+                      New
+                    </span>
+                  </span>
+                  {/* Shimmer effect */}
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                </button>
               )}
 
               {/* Theme Toggle */}
@@ -198,6 +230,39 @@ export default function TemplateSelectionStep({
                   </p>
                 </button>
               ))}
+
+              {/* AI Review Card in Sidebar */}
+              {canReview && (
+                <div className={`
+                  mt-6 p-4 rounded-xl
+                  ${isDark 
+                    ? 'bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20' 
+                    : 'bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-200'
+                  }
+                `}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xl">🎯</span>
+                    <h4 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      AI Review
+                    </h4>
+                  </div>
+                  <p className={`text-xs mb-3 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Get AI feedback on how well your resume matches the job description
+                  </p>
+                  <button
+                    onClick={() => setShowReviewModal(true)}
+                    className={`
+                      w-full py-2 rounded-lg font-medium text-sm transition-all
+                      ${isDark
+                        ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30 hover:bg-violet-500/30'
+                        : 'bg-violet-100 text-violet-700 border border-violet-300 hover:bg-violet-200'
+                      }
+                    `}
+                  >
+                    Analyze Now →
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -233,6 +298,18 @@ export default function TemplateSelectionStep({
           </div>
         </div>
       </div>
+
+      {/* AI Review Modal */}
+      {jobDescription && (
+        <AIReviewModal
+          isOpen={showReviewModal}
+          onClose={() => setShowReviewModal(false)}
+          cvData={enhancedCV}
+          coverLetter={coverLetter}
+          jobDescription={jobDescription}
+          theme={theme}
+        />
+      )}
     </div>
   );
 }
