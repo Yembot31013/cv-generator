@@ -104,6 +104,13 @@ ${job.skills?.join(', ') || 'Not specified'}
 **Current CV Data:**
 ${JSON.stringify(partialCV, null, 2)}
 
+**IMPORTANT: SOURCE FILES PROVIDED**
+The user has uploaded files (resumes, portfolios, documents) that contain their REAL information. You MUST:
+1. **THOROUGHLY SEARCH** all provided files for URLs, links, contact info, project details and all
+2. **EXTRACT REAL DATA** - Look for GitHub profiles, LinkedIn URLs, portfolio links, project URLs
+3. **DO NOT FABRICATE** - If you cannot find a URL or link in the provided files, use EMPTY STRING ""
+4. **VERIFY ACCURACY** - Only use URLs/links that you can actually find in the provided documents
+
 **Your Mission:**
 Transform this CV into a stunning, tailored resume that:
 
@@ -114,14 +121,11 @@ Transform this CV into a stunning, tailored resume that:
    - Emphasize relevant technologies and skills mentioned in the job description
    - Create compelling project highlights that demonstrate required competencies
 
-3. **Intelligent Assumptions**:
-   - If information is missing, make educated guesses based on:
-     * Job title and industry standards
-     * Years of experience
-     * Company size and type
-     * Common technologies in the field
+3. **Intelligent Assumptions (EXCEPT for URLs/Links)**:
+   - For TEXT content: make educated guesses based on job title, industry standards, experience
    - Fill in reasonable details (team sizes, budget ranges, user numbers, performance metrics)
    - Add industry-standard technologies if not specified
+   - **NEVER ASSUME OR FABRICATE URLs, LINKS, OR CONTACT URLS**
 
 4. **Professional Touch**:
    - Create a powerful bio that positions them as the ideal candidate
@@ -136,13 +140,35 @@ Transform this CV into a stunning, tailored resume that:
    - Every project must have: name, description, technologies, 2-3 highlights
    - Skills must be categorized and comprehensive
 
+**CRITICAL URL RULES - ABSOLUTELY MANDATORY:**
+⚠️ For website, linkedin, github, twitter, project links:
+- ONLY use URLs that you can ACTUALLY FIND in the provided files/documents
+- If a URL is not found in the source files, use EMPTY STRING ""
+- NEVER generate fake URLs like "https://github.com/username" or "https://linkedin.com/in/name"
+- NEVER create placeholder URLs like "N/A", "Private Repository", "Coming Soon"
+- NEVER guess or assume URLs based on the person's name
+- It is BETTER to have an empty field than a fake/fabricated URL
+- If you see a project is "private" or has no URL, leave the link field as ""
+
+**Examples of FORBIDDEN fake URLs (DO NOT DO THIS):**
+- https://github.com/johndoe ❌ (guessed from name)
+- https://linkedin.com/in/john-doe ❌ (guessed from name)
+- https://portfolio.example.com ❌ (placeholder)
+- Private Repository ❌ (not a URL)
+- N/A ❌ (not a URL)
+- https://company-name.github.io ❌ (guessed from company)
+
+**Correct approach:**
+- If found in file: "https://github.com/actual-username/real-repo" ✓
+- If NOT found: "" ✓ (empty string)
+
 **CRITICAL RULES:**
 - Make it feel authentic and believable
 - Use confident, achievement-focused language
 - Add specific numbers and metrics (be realistic but impressive)
 - Tailor everything to match the job description keywords
 - Be psychologically persuasive - make them sound like THE expert
-- Fill in gaps intelligently - no empty fields or "TBD"
+- Fill in gaps intelligently - no empty fields or "TBD" (EXCEPT URLs - leave those empty if not found)
 
 **Output Format:**
 Return ONLY a valid JSON object matching this exact structure:
@@ -151,13 +177,13 @@ Return ONLY a valid JSON object matching this exact structure:
   "personalInfo": {
     "fullName": "string",
     "title": "string (tailor to job title)",
-    "email": "string",
-    "phone": "string",
+    "email": "string (ONLY from source files)",
+    "phone": "string (ONLY from source files)",
     "location": "string",
-    "website": "string",
-    "linkedin": "string",
-    "github": "string",
-    "twitter": "string",
+    "website": "string (ONLY real URL from source files, or empty string)",
+    "linkedin": "string (ONLY real URL from source files, or empty string)",
+    "github": "string (ONLY real URL from source files, or empty string)",
+    "twitter": "string (ONLY real URL from source files, or empty string)",
     "bio": "string (3-4 sentences positioning them as ideal for this role)"
   },
   "experience": [
@@ -186,8 +212,8 @@ Return ONLY a valid JSON object matching this exact structure:
       "name": "string",
       "description": "string",
       "technologies": ["tech1", "tech2"],
-      "link": "string",
-      "github": "string",
+      "link": "string (ONLY real URL from source files, or empty string)",
+      "github": "string (ONLY real URL from source files, or empty string)",
       "highlights": ["highlight with metrics", "highlight with metrics"]
     }
   ],
@@ -195,7 +221,15 @@ Return ONLY a valid JSON object matching this exact structure:
   "languages": [{"name": "string", "proficiency": "string"}]
 }
 
-Make it IMPRESSIVE. Make it BELIEVABLE. Make it TAILORED. Make them look like THE perfect candidate.`;
+**FINAL CHECK BEFORE RESPONDING:**
+Before outputting JSON, verify:
+□ Every URL field contains ONLY a real URL found in source files, or is ""
+□ No fabricated GitHub/LinkedIn/website URLs based on guessing
+□ No placeholder text like "N/A", "Private", "Coming Soon" in URL fields
+□ Project links are REAL URLs or empty strings
+
+Make it IMPRESSIVE. Make it BELIEVABLE. Make it TAILORED. Make them look like THE perfect candidate.
+But NEVER fabricate URLs - accuracy is more important than completeness for links.`;
   }
 
   /**
@@ -273,7 +307,21 @@ Make it IMPRESSIVE. Make it BELIEVABLE. Make it TAILORED. Make them look like TH
 Current CV Data:
 ${JSON.stringify(partialCV, null, 2)}
 
-Return ONLY a valid JSON object with complete CV data following standard CV structure. Fill in missing details intelligently.`;
+**IMPORTANT: SOURCE FILES PROVIDED**
+The user has uploaded files containing their REAL information. You MUST:
+1. SEARCH all provided files for URLs, links, contact info, project details
+2. ONLY use URLs that you can ACTUALLY FIND in the provided documents
+3. If you cannot find a URL/link in the files, use EMPTY STRING ""
+4. NEVER fabricate or guess URLs based on names or companies
+
+**CRITICAL URL RULES:**
+- website, linkedin, github, twitter, project links: ONLY use real URLs from source files
+- If not found → use "" (empty string)
+- NEVER guess URLs like "https://github.com/username" based on the person's name
+- NEVER use placeholders like "N/A", "Private Repository", "Coming Soon"
+- It is BETTER to have an empty URL field than a fake one
+
+Return ONLY a valid JSON object with complete CV data following standard CV structure. Fill in missing text details intelligently, but NEVER fabricate URLs.`;
 
     try {
       const contents: any[] = [{ text: prompt }];
