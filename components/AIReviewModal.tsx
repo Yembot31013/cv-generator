@@ -541,7 +541,15 @@ function SectionReviewCard({
 }
 
 // Loading Animation
-function LoadingAnimation({ isDark, isReAnalysis = false, reviewNumber = 1 }: { isDark: boolean; isReAnalysis?: boolean; reviewNumber?: number }) {
+function LoadingAnimation({
+  isDark,
+  isReAnalysis = false,
+  reviewNumber = 1,
+}: {
+  isDark: boolean;
+  isReAnalysis?: boolean;
+  reviewNumber?: number;
+}) {
   return (
     <div className="flex flex-col items-center justify-center py-20">
       <div className="relative w-32 h-32 mb-8">
@@ -568,13 +576,18 @@ function LoadingAnimation({ isDark, isReAnalysis = false, reviewNumber = 1 }: { 
           isDark ? "text-white" : "text-gray-900"
         }`}
       >
-        {isReAnalysis ? `Re-analyzing (Review #${reviewNumber})` : "Analyzing Your Application"}
+        {isReAnalysis
+          ? `Re-analyzing (Review #${reviewNumber})`
+          : "Analyzing Your Application"}
       </h3>
-      <p className={`text-sm text-center max-w-md ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-        {isReAnalysis 
+      <p
+        className={`text-sm text-center max-w-md ${
+          isDark ? "text-gray-400" : "text-gray-600"
+        }`}
+      >
+        {isReAnalysis
           ? "Comparing your resume with previous feedback to track your progress..."
-          : "Our AI is reviewing your resume and cover letter..."
-        }
+          : "Our AI is reviewing your resume and cover letter..."}
       </p>
       <div
         className={`
@@ -643,12 +656,13 @@ export default function AIReviewModal({
     try {
       const reviewer = createAIReviewer(apiKey);
       // Pass the current session for context-aware re-analysis
-      const { result, session: updatedSession } = await reviewer.reviewApplicationMaterials(
-        cvData,
-        jobDescription,
-        coverLetter || undefined,
-        session // Pass existing session for re-analysis context
-      );
+      const { result, session: updatedSession } =
+        await reviewer.reviewApplicationMaterials(
+          cvData,
+          jobDescription,
+          coverLetter || undefined,
+          session // Pass existing session for re-analysis context
+        );
       setReview(result);
       setSession(updatedSession); // Store updated session with history
     } catch (err) {
@@ -726,7 +740,11 @@ export default function AIReviewModal({
                     <span
                       className={`
                         text-xs px-2 py-0.5 rounded-full font-medium
-                        ${isDark ? "bg-indigo-500/20 text-indigo-300" : "bg-indigo-100 text-indigo-700"}
+                        ${
+                          isDark
+                            ? "bg-indigo-500/20 text-indigo-300"
+                            : "bg-indigo-100 text-indigo-700"
+                        }
                       `}
                     >
                       Review #{session.reviewCount}
@@ -749,22 +767,65 @@ export default function AIReviewModal({
 
             <div className="flex items-center gap-3">
               {review && (
-                <button
-                  onClick={handleReview}
-                  disabled={isLoading}
-                  className={`
-                    px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2
-                    ${isLoading ? "opacity-50 cursor-not-allowed" : ""}
-                    ${
-                      isDark
-                        ? "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }
-                  `}
-                >
-                  <span className={isLoading ? "animate-spin" : ""}>🔄</span>
-                  {isLoading ? "Analyzing..." : `Re-analyze${session && session.reviewCount > 0 ? ` (#${session.reviewCount + 1})` : ""}`}
-                </button>
+                <>
+                  {/* Fix with AI Button - Coming Soon */}
+                  <button
+                    onClick={() => {
+                      alert(
+                        "🚀 Fix with AI is coming soon!\n\nThis feature will automatically apply suggested improvements to your resume based on the review feedback."
+                      );
+                    }}
+                    className={`
+                      relative px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2
+                      cursor-not-allowed
+                      ${
+                        isDark
+                          ? "bg-linear-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400/70 border border-emerald-500/30"
+                          : "bg-linear-to-r from-emerald-50 to-teal-50 text-emerald-600/70 border border-emerald-300"
+                      }
+                    `}
+                    title="Coming soon - Auto-fix issues with AI"
+                  >
+                    <span>✨</span>
+                    <span>Fix with AI</span>
+                    <span
+                      className={`
+                        text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase
+                        ${
+                          isDark
+                            ? "bg-emerald-500/30 text-emerald-300"
+                            : "bg-emerald-200 text-emerald-700"
+                        }
+                      `}
+                    >
+                      Soon
+                    </span>
+                  </button>
+
+                  {/* Re-analyze Button */}
+                  <button
+                    onClick={handleReview}
+                    disabled={isLoading}
+                    className={`
+                      px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2
+                      ${isLoading ? "opacity-50 cursor-not-allowed" : ""}
+                      ${
+                        isDark
+                          ? "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }
+                    `}
+                  >
+                    <span className={isLoading ? "animate-spin" : ""}>🔄</span>
+                    {isLoading
+                      ? "Analyzing..."
+                      : `Re-analyze${
+                          session && session.reviewCount > 0
+                            ? ` (#${session.reviewCount + 1})`
+                            : ""
+                        }`}
+                  </button>
+                </>
               )}
               <button
                 onClick={onClose}
@@ -849,8 +910,8 @@ export default function AIReviewModal({
           }`}
         >
           {isLoading ? (
-            <LoadingAnimation 
-              isDark={isDark} 
+            <LoadingAnimation
+              isDark={isDark}
               isReAnalysis={session !== undefined && session.reviewCount > 0}
               reviewNumber={(session?.reviewCount || 0) + 1}
             />
@@ -1095,6 +1156,40 @@ export default function AIReviewModal({
                           </li>
                         )}
                       </ul>
+                      {/* Fix with AI button for critical issues */}
+                      {review.resumeReview.criticalIssues.length > 0 && (
+                        <button
+                          onClick={() => {
+                            alert(
+                              "🚀 Fix with AI is coming soon!\n\nThis feature will automatically fix these critical issues in your resume."
+                            );
+                          }}
+                          className={`
+                            mt-4 w-full py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2
+                            cursor-not-allowed
+                            ${
+                              isDark
+                                ? "bg-red-500/20 text-red-300/70 border border-red-500/30 hover:bg-red-500/30"
+                                : "bg-red-100 text-red-600/70 border border-red-300"
+                            }
+                          `}
+                        >
+                          <span>✨</span>
+                          <span>Fix All Issues</span>
+                          <span
+                            className={`
+                              text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase
+                              ${
+                                isDark
+                                  ? "bg-red-500/30 text-red-200"
+                                  : "bg-red-200 text-red-700"
+                              }
+                            `}
+                          >
+                            Soon
+                          </span>
+                        </button>
+                      )}
                     </div>
 
                     {/* Quick Wins */}
@@ -1138,6 +1233,40 @@ export default function AIReviewModal({
                           </li>
                         ))}
                       </ul>
+                      {/* Apply Quick Wins button */}
+                      {review.resumeReview.quickWins.length > 0 && (
+                        <button
+                          onClick={() => {
+                            alert(
+                              "🚀 Fix with AI is coming soon!\n\nThis feature will automatically apply these quick wins to boost your resume score."
+                            );
+                          }}
+                          className={`
+                            mt-4 w-full py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2
+                            cursor-not-allowed
+                            ${
+                              isDark
+                                ? "bg-indigo-500/20 text-indigo-300/70 border border-indigo-500/30 hover:bg-indigo-500/30"
+                                : "bg-indigo-100 text-indigo-600/70 border border-indigo-300"
+                            }
+                          `}
+                        >
+                          <span>✨</span>
+                          <span>Apply Quick Wins</span>
+                          <span
+                            className={`
+                              text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase
+                              ${
+                                isDark
+                                  ? "bg-indigo-500/30 text-indigo-200"
+                                  : "bg-indigo-200 text-indigo-700"
+                              }
+                            `}
+                          >
+                            Soon
+                          </span>
+                        </button>
+                      )}
                     </div>
                   </div>
 
