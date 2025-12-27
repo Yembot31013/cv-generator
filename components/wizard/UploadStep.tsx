@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { CVData } from "@/types/cv";
 import { useApiKey } from "@/contexts/ApiKeyContext";
+import StickFigureLoader from "./StickFigureLoader";
 
 interface UploadStepProps {
   onDataExtracted: (data: Partial<CVData>, files?: File[]) => void;
@@ -210,27 +211,7 @@ export default function UploadStep({
         />
 
         {uploading ? (
-          <div className="py-8">
-            <div
-              className={`animate-spin h-16 w-16 mx-auto mb-4 border-4 border-t-transparent rounded-full ${
-                isDark ? "border-indigo-500" : "border-indigo-600"
-              }`}
-            />
-            <p
-              className={`text-lg ${
-                isDark ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
-              AI is analyzing your {files.length > 1 ? "files" : "file"}...
-            </p>
-            <p
-              className={`text-sm mt-2 ${
-                isDark ? "text-gray-400" : "text-gray-600"
-              }`}
-            >
-              Using Gemini 2.5 Pro with thinking mode
-            </p>
-          </div>
+          <StickFigureLoader fileCount={files.length} theme={theme} />
         ) : (
           <>
             {/* Upload Icon */}
