@@ -9,6 +9,7 @@ import JobDescriptionStep from "./wizard/JobDescriptionStep";
 import AIEnhancementStep from "./wizard/AIEnhancementStep";
 import TemplateSelectionStep from "./wizard/TemplateSelectionStep";
 import ApiKeyInput from "./ApiKeyInput";
+import GitHubStarFloat from "./GitHubStarFloat";
 
 type WizardStep =
   | "upload"
@@ -297,6 +298,9 @@ export default function CVWizard() {
           />
         )}
       </div>
+
+      {/* GitHub Star Request */}
+      <GitHubStarFloat theme={theme} />
     </div>
   );
 }

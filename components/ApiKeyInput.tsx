@@ -191,8 +191,27 @@ export default function ApiKeyInput({ theme = 'dark', onApiKeySet }: ApiKeyInput
           </button>
         </form>
 
-        <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-          <p>🔒 Your API key is stored locally in your browser and never sent to our servers.</p>
+        <div className={`text-xs space-y-2 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+          <div className={`flex items-start gap-2 p-3 rounded-lg ${isDark ? 'bg-green-500/10 border border-green-500/20' : 'bg-green-50 border border-green-200'}`}>
+            <span className="text-base">🔐</span>
+            <div className="space-y-1">
+              <p className={`font-medium ${isDark ? 'text-green-400' : 'text-green-700'}`}>
+                Your API key never leaves your device
+              </p>
+              <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                Stored locally in your browser. Zero server uploads. We literally can't see it even if we wanted to (and we don't want to, pinky promise 🤙).
+              </p>
+              <a
+                href="https://github.com/Yembot31013/cv-generator"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex items-center gap-1 mt-1 font-medium hover:underline ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}
+              >
+                <span>👀</span> Don't trust us? Review the source code
+                <span className="text-xs">↗</span>
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
