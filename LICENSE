@@ -1,0 +1,28 @@
+Copyright (c) 2025 yembot
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to use,
+copy, modify, and self-host the Software for personal, educational, and
+non-commercial purposes only.
+
+The Software may be forked and modified, provided that:
+- This license and copyright notice are included in all copies or substantial
+  portions of the Software.
+- Any derivative work is distributed under the same license terms.
+
+Commercial use is strictly prohibited without prior written permission from
+the copyright holder.
+
+For the purposes of this license, "Commercial use" includes, but is not limited to:
+- Selling the Software or any derivative works
+- Offering the Software as a paid service (SaaS, subscriptions, paywalls)
+- Using the Software in a product or service that generates revenue
+- Providing paid consulting or services primarily based on the Software
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

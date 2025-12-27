@@ -24,6 +24,19 @@
 
 ---
 
+## 🔐 API Key Transparency
+
+This project is open-sourced to ensure full transparency.
+
+Users are required to provide their own AI API keys (e.g. OpenAI).
+The application does **not** collect, store, or transmit API keys to any
+server controlled by the author.
+
+All AI requests are executed client-side or directly from the user's
+environment. You are encouraged to review the source code to verify this.
+
+---
+
 ## 🚀 Quick Start
 
 ### 1. Install & Run
@@ -334,9 +347,22 @@ Feel free to:
 
 ---
 
-## 📄 License
+## 📜 License
 
-This project is open source and available for personal and commercial use.
+This project is licensed under a **Custom Non-Commercial Open License**.
+
+You are free to:
+- Use the software for personal or educational purposes
+- Modify and self-host it
+- Inspect the source code for security and transparency
+
+You may NOT:
+- Sell the software
+- Offer it as a paid service (SaaS)
+- Use it in a commercial product without permission
+
+For commercial licensing inquiries, contact: yembot31013@gmail.com
+
 
 ---
 
