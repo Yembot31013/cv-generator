@@ -2,6 +2,9 @@
 
 > A modern CV generator with beautiful Web3-inspired templates featuring 3D effects, glassmorphism, and neon designs.
 
+[![GitHub](https://img.shields.io/badge/GitHub-Yembot31013%2Fcv--generator-181717?style=for-the-badge&logo=github)](https://github.com/Yembot31013/cv-generator)
+[![License](https://img.shields.io/badge/License-Non--Commercial-red?style=for-the-badge)](LICENSE)
+
 ![Next.js](https://img.shields.io/badge/Next.js-16.1.1-black?style=for-the-badge&logo=next.js)
 ![React](https://img.shields.io/badge/React-19.2.3-61DAFB?style=for-the-badge&logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript)
@@ -284,7 +287,7 @@ This project focuses on:
 
 1. **Clone and Install**
    ```bash
-   git clone <your-repo>
+   git clone https://github.com/Yembot31013/cv-generator.git
    cd cv-generator
    npm install
    ```
@@ -381,7 +384,7 @@ Visit [http://localhost:3000](http://localhost:3000) and start exploring!
 For issues or questions:
 1. Check the documentation in `/docs`
 2. Review the code comments
-3. Open an issue on GitHub
+3. [Open an issue on GitHub](https://github.com/Yembot31013/cv-generator/issues)
 
 ---
 
