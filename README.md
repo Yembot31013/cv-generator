@@ -341,70 +341,51 @@ This project focuses on:
 
 ## 🤝 Contributing
 
-We welcome contributions! Here are areas where you can help:
+We welcome contributions! Here are specific features that are **coming soon** and need implementation:
 
-### 🎨 Design & Templates
-- Add new CV templates with unique styles
-- Improve existing template designs
-- Add more theme variations
-- Enhance animations and effects
+### 🚀 Coming Soon Features
 
-### 🚀 Features to Implement
+#### 1. **PDF Export/Download** 📄
+- **Status**: Partially implemented (code exists in `lib/pdfExport.ts`) but UI shows "coming soon"
+- **What's needed**: 
+  - Connect the export function to the download button in `TemplateSelectionStep.tsx`
+  - Replace the alert message with actual PDF download functionality
+  - Test PDF generation with all 4 templates
+  - Ensure proper formatting and page breaks
 
-#### High Priority
-- [ ] **Multiple Export Formats** - Export as DOCX, HTML, or Markdown (currently only PDF)
-- [ ] **Save Drafts** - Save CV drafts to local storage or cloud
-- [ ] **Cover Letter Generator** - AI-powered cover letter creation based on job description
-- [ ] **ATS Score Checker** - Analyze how ATS-friendly your CV is
-- [ ] **LinkedIn Profile Optimization** - Import and optimize LinkedIn profile data
-- [ ] **Version History** - Track and compare different CV versions
+#### 2. **Copy Feature in Cover Letter Section** 📋
+- **Status**: Cover letter component exists but no copy button
+- **What's needed**:
+  - Add a "Copy to Clipboard" button in the cover letter preview
+  - Implement copy functionality that copies the formatted cover letter text
+  - Add visual feedback when copy is successful
+  - Handle both plain text and formatted versions
 
-#### Medium Priority
-- [ ] **Share CV via Link** - Generate shareable links for your CV
-- [ ] **A/B Testing** - Test different CV versions to see which performs better
-- [ ] **Image Support** - Process CV screenshots using OCR
-- [ ] **Real-time Collaboration** - Multiple people can edit CV together
-- [ ] **Template Customization** - Color picker, font selection, layout adjustments
-- [ ] **Multi-language Support** - Generate CVs in different languages
-- [ ] **Resume Analytics** - Track views, downloads, and engagement
+#### 3. **Auto Fix in AI Review** ✨
+- **Status**: "Fix with AI" button exists but shows "coming soon" alert
+- **What's needed**:
+  - Implement auto-fix functionality in `AIReviewModal.tsx`
+  - Connect to AI modifier to automatically apply suggested improvements
+  - Allow users to fix critical issues, quick wins, or specific sections
+  - Show before/after comparison
+  - Apply fixes to both resume and cover letter
 
-#### Nice to Have
-- [ ] **LinkedIn URL Scraping** - Extract data directly from LinkedIn profile URLs
-- [ ] **QR Code Generation** - Add QR codes linking to online portfolio
-- [ ] **Video Resume Integration** - Embed video introductions
-- [ ] **Portfolio Integration** - Link to GitHub, Behance, Dribbble, etc.
-- [ ] **Reference Management** - Add and manage professional references
-- [ ] **Interview Prep** - Generate interview questions based on CV and job description
-- [ ] **Salary Calculator** - Estimate salary based on experience and skills
-- [ ] **Job Matching** - Find jobs that match your CV profile
+#### 4. **More Template Designs** 🎨
+- **Status**: Currently 4 templates (Cyber, Neon, Glass, Minimal)
+- **What's needed**:
+  - Create new template components in `components/cv-templates/`
+  - Add to template selection in `TemplateSelectionStep.tsx`
+  - Ensure dark/light theme support
+  - Follow existing template structure and TypeScript types
+  - Ideas: Corporate Classic, Creative Portfolio, Academic, Modern Minimal, etc.
 
-### 🐛 Bug Fixes & Improvements
-- Fix existing bugs
-- Improve error handling
-- Enhance performance
-- Optimize AI prompts for better results
-- Improve accessibility (a11y)
-- Add unit tests and integration tests
-- Improve mobile responsiveness
+### 🐛 Other Contribution Areas
 
-### 📚 Documentation
-- Improve existing documentation
-- Add code comments
-- Create video tutorials
-- Write blog posts about features
-- Translate documentation to other languages
-
-### 🔧 Technical Improvements
-- Add more AI model options (OpenAI, Claude, etc.)
-- Implement caching for faster load times
-- Add offline support
-- Improve TypeScript types
-- Add E2E testing
-- Set up CI/CD pipelines
-- Performance optimizations
-
-### 💡 Ideas Welcome!
-Have a feature idea? Open an issue or submit a PR! We're always looking for ways to make the CV generator better.
+- **Bug Fixes**: Fix existing bugs and improve error handling
+- **Improvements**: Enhance existing features and UI/UX
+- **Documentation**: Improve docs, add code comments, create tutorials
+- **Testing**: Add unit tests and integration tests
+- **Performance**: Optimize load times and animations
 
 ---
 
