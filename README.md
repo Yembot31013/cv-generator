@@ -341,12 +341,70 @@ This project focuses on:
 
 ## 🤝 Contributing
 
-Feel free to:
-- Add new templates
-- Improve existing designs
-- Add features
-- Fix bugs
-- Improve documentation
+We welcome contributions! Here are areas where you can help:
+
+### 🎨 Design & Templates
+- Add new CV templates with unique styles
+- Improve existing template designs
+- Add more theme variations
+- Enhance animations and effects
+
+### 🚀 Features to Implement
+
+#### High Priority
+- [ ] **Multiple Export Formats** - Export as DOCX, HTML, or Markdown (currently only PDF)
+- [ ] **Save Drafts** - Save CV drafts to local storage or cloud
+- [ ] **Cover Letter Generator** - AI-powered cover letter creation based on job description
+- [ ] **ATS Score Checker** - Analyze how ATS-friendly your CV is
+- [ ] **LinkedIn Profile Optimization** - Import and optimize LinkedIn profile data
+- [ ] **Version History** - Track and compare different CV versions
+
+#### Medium Priority
+- [ ] **Share CV via Link** - Generate shareable links for your CV
+- [ ] **A/B Testing** - Test different CV versions to see which performs better
+- [ ] **Image Support** - Process CV screenshots using OCR
+- [ ] **Real-time Collaboration** - Multiple people can edit CV together
+- [ ] **Template Customization** - Color picker, font selection, layout adjustments
+- [ ] **Multi-language Support** - Generate CVs in different languages
+- [ ] **Resume Analytics** - Track views, downloads, and engagement
+
+#### Nice to Have
+- [ ] **LinkedIn URL Scraping** - Extract data directly from LinkedIn profile URLs
+- [ ] **QR Code Generation** - Add QR codes linking to online portfolio
+- [ ] **Video Resume Integration** - Embed video introductions
+- [ ] **Portfolio Integration** - Link to GitHub, Behance, Dribbble, etc.
+- [ ] **Reference Management** - Add and manage professional references
+- [ ] **Interview Prep** - Generate interview questions based on CV and job description
+- [ ] **Salary Calculator** - Estimate salary based on experience and skills
+- [ ] **Job Matching** - Find jobs that match your CV profile
+
+### 🐛 Bug Fixes & Improvements
+- Fix existing bugs
+- Improve error handling
+- Enhance performance
+- Optimize AI prompts for better results
+- Improve accessibility (a11y)
+- Add unit tests and integration tests
+- Improve mobile responsiveness
+
+### 📚 Documentation
+- Improve existing documentation
+- Add code comments
+- Create video tutorials
+- Write blog posts about features
+- Translate documentation to other languages
+
+### 🔧 Technical Improvements
+- Add more AI model options (OpenAI, Claude, etc.)
+- Implement caching for faster load times
+- Add offline support
+- Improve TypeScript types
+- Add E2E testing
+- Set up CI/CD pipelines
+- Performance optimizations
+
+### 💡 Ideas Welcome!
+Have a feature idea? Open an issue or submit a PR! We're always looking for ways to make the CV generator better.
 
 ---
 
