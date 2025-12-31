@@ -1,6 +1,6 @@
-# ✨ Stunning CV Generator
+# 🤖 AI-Native CV Generator
 
-> A modern CV generator with beautiful Web3-inspired templates featuring 3D effects, glassmorphism, and neon designs.
+> An intelligent, AI-powered CV generator that extracts, enhances, tailors, and reviews your resume using Google Gemini. Upload your resume, provide a job description, and let AI create a perfectly tailored CV with beautiful templates.
 
 [![GitHub](https://img.shields.io/badge/GitHub-Yembot31013%2Fcv--generator-181717?style=for-the-badge&logo=github)](https://github.com/Yembot31013/cv-generator)
 [![License](https://img.shields.io/badge/License-Non--Commercial-red?style=for-the-badge)](LICENSE)
@@ -12,18 +12,23 @@
 
 ---
 
-## 🎯 Features
+## 🎯 Core AI Features
 
-- ✨ **4 Stunning Templates** - Cyber Web3, Neon Retro, Glassmorphic, Minimal Pro
-- 🌓 **Dark/Light Themes** - Optimized for both modes (dark default)
-- 🎨 **3D Effects** - SVG animations and depth effects
-- 💎 **Glassmorphism** - Modern glass effects with backdrop blur
-- ⚡ **Neon Glow** - Cyberpunk-inspired neon effects
+- 🤖 **AI-Powered Extraction** - Upload PDF, DOCX, or JSON files. Gemini 2.5 Pro extracts all CV data intelligently
+- 🎯 **Job-Specific Tailoring** - AI rewrites your resume to match job descriptions with keyword optimization
+- 📊 **AI Review & Scoring** - Get comprehensive ATS analysis, keyword matching, and improvement suggestions
+- ✨ **AI Enhancement** - Automatically adds metrics, achievements, and missing details based on industry standards
+- 📝 **AI Cover Letter Generation** - Creates personalized cover letters tailored to each job application
+- 🔧 **AI Modifier** - Make instant changes with natural language prompts ("Add Python to skills", "Update email to...")
+- 🧠 **Thinking Mode** - Uses Gemini 2.5 Pro with deep reasoning for intelligent data extraction and merging
+- 📚 **Multiple File Support** - Upload multiple resumes/documents and AI merges them intelligently
+
+## 🎨 Design Features
+
+- ✨ **4 Beautiful Templates** - Cyber Web3, Neon Retro, Glassmorphic, Minimal Pro
+- 🌓 **Dark/Light Themes** - Optimized for both modes
 - 📱 **Fully Responsive** - Works perfectly on all devices
 - ⚛️ **Type-Safe** - Complete TypeScript support
-- 🎬 **Smooth Animations** - Hardware-accelerated transitions
-- ✅ **Approval Workflow** - Preview and approve designs
-- 📄 **Mock Data Included** - Ready to test immediately
 
 ---
 
@@ -52,14 +57,18 @@ npm install
 npm run dev
 ```
 
-### 2. Open Browser
-Navigate to [http://localhost:3000](http://localhost:3000)
+### 2. Configure AI API Key
+1. Get your Google Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Create `.env.local` file in the root directory
+3. Add: `NEXT_PUBLIC_GEMINI_API_KEY=your_api_key_here`
 
-### 3. Start Exploring!
-Use the control panel to:
-- Navigate between templates
-- Toggle dark/light mode
-- Approve or request changes
+### 3. Use the AI-Powered Workflow
+1. **Upload Your Resume** - Upload PDF, DOCX, or JSON files. AI extracts all data automatically
+2. **Add Job Description** - Paste the job posting. AI uses it to tailor your CV
+3. **AI Enhancement** - Watch AI rewrite and enhance your resume with metrics and achievements
+4. **AI Review** - Get comprehensive ATS analysis, keyword matching, and improvement suggestions
+5. **Select Template** - Choose from 4 beautiful templates to display your AI-enhanced CV
+6. **Generate Cover Letter** - AI creates a personalized cover letter tailored to the job
 
 ---
 
@@ -212,11 +221,11 @@ Located at the top of the page:
 
 ## 🔧 Tech Stack
 
+- **AI Engine**: Google Gemini 2.5 Pro with Thinking Mode
 - **Framework**: Next.js 16.1.1 with App Router
 - **UI Library**: React 19.2.3
 - **Language**: TypeScript 5
 - **Styling**: Tailwind CSS 4
-- **Animations**: CSS + SVG
 - **Package Manager**: npm
 
 ---
@@ -232,28 +241,26 @@ npm run lint     # Run ESLint
 
 ---
 
-## 🎯 Key Features
+## 🎯 How It Works
 
-### 🎨 Visual Design
-- Web3-inspired aesthetics
-- 3D depth and dimension
-- Smooth animations
-- Modern color schemes
-- Clean, readable layouts
+### 🤖 AI-Powered Workflow
 
-### 💻 Technical
-- Type-safe with TypeScript
-- Component-based architecture
-- Responsive design
-- Performance optimized
-- Easy to customize
+1. **Upload & Extract** - Upload multiple resume files (PDF, DOCX, JSON). AI extracts and merges all information intelligently
+2. **Job-Specific Tailoring** - Provide a job description. AI rewrites your resume to match keywords and requirements
+3. **Intelligent Enhancement** - AI adds metrics, achievements, and missing details based on industry standards
+4. **ATS Review** - Get comprehensive scoring on job alignment, keyword optimization, and ATS compatibility
+5. **Natural Language Editing** - Use AI Modifier to make changes with simple prompts ("Add Python to skills", "Update email")
+6. **Cover Letter Generation** - AI creates personalized cover letters tailored to each job application
+7. **Beautiful Templates** - Display your AI-enhanced CV in 4 stunning, professional templates
 
-### 📱 User Experience
-- Intuitive navigation
-- Theme toggle
-- Approval workflow
-- Feedback system
-- Template previews
+### 🧠 AI Capabilities
+
+- **Deep Reasoning** - Uses Gemini 2.5 Pro Thinking Mode for intelligent data extraction
+- **Context Understanding** - Understands relationships between experiences, skills, and job requirements
+- **Intelligent Merging** - Combines multiple documents without duplication
+- **ATS Optimization** - Analyzes keyword matching and suggests improvements
+- **Fake Data Detection** - Identifies placeholder contact info and dummy data
+- **Smart Assumptions** - Fills gaps intelligently while preserving accuracy
 
 ---
 
@@ -268,16 +275,16 @@ Comprehensive documentation is available:
 
 ---
 
-## 🎨 Design Philosophy
+## 🎯 Project Philosophy
 
-This project focuses on:
+This project is **AI-native first**:
 
-1. **Visual Impact** - Eye-catching designs that stand out
-2. **Web3 Aesthetics** - Modern, futuristic styling
-3. **3D Effects** - Depth and dimension using SVG and CSS
-4. **Dark Theme First** - Optimized for dark mode viewing
-5. **Clean UI** - Beautiful yet readable and professional
-6. **Performance** - Smooth, hardware-accelerated animations
+1. **Intelligence Over Manual Work** - AI handles extraction, enhancement, and tailoring automatically
+2. **Job-Specific Optimization** - Every CV is tailored to the specific job description using AI
+3. **Privacy-First** - Your API keys stay on your device. All AI processing is transparent and auditable
+4. **Context-Aware** - AI understands relationships between data points, not just pattern matching
+5. **Beautiful Output** - AI-enhanced content displayed in stunning, professional templates
+6. **Continuous Improvement** - AI review provides actionable feedback for ongoing optimization
 
 ---
 
@@ -292,49 +299,73 @@ This project focuses on:
    npm install
    ```
 
-2. **Add Your Data**
-   - Open [data/mockCV.ts](data/mockCV.ts)
-   - Replace with your information
-   - Save the file
+2. **Set Up AI API Key**
+   - Get your Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+   - Create `.env.local` file: `NEXT_PUBLIC_GEMINI_API_KEY=your_key_here`
 
 3. **Start the App**
    ```bash
    npm run dev
    ```
 
-4. **Browse Templates**
-   - View all 4 templates
-   - Try dark and light modes
-   - Find your favorite
+4. **Upload Your Resume**
+   - Upload PDF, DOCX, or JSON files
+   - AI automatically extracts all information
+   - Can upload multiple files for comprehensive extraction
 
-5. **Approve or Customize**
-   - Approve a template you love
-   - Or request modifications
+5. **Provide Job Description**
+   - Paste the full job posting
+   - AI uses it to tailor your CV specifically for that role
+
+6. **Let AI Enhance**
+   - Watch AI rewrite and enhance your resume
+   - Adds metrics, achievements, and missing details
+   - Tailors content to match job requirements
+
+7. **Review & Improve**
+   - Get AI-powered ATS analysis
+   - See keyword matching and improvement suggestions
+   - Use AI Modifier for instant changes
+
+8. **Generate Cover Letter**
+   - AI creates personalized cover letter
+   - Tailored to the specific job and your experience
+
+9. **Choose Template & Export**
+   - Select from 4 beautiful templates
+   - Export your AI-enhanced CV
 
 ---
 
 ## 💡 Pro Tips
 
-1. **Dark Mode First**: Templates look most impressive in dark mode
-2. **Try All Templates**: Each has a unique personality
-3. **Test Both Themes**: Some templates transform in light mode
-4. **Use Real Data**: Test with your actual CV data
-5. **Mobile Check**: View on different screen sizes
+1. **Upload Multiple Files**: Upload old + new resumes, portfolios, and project docs. AI merges them intelligently
+2. **Detailed Job Descriptions**: The more detail you provide, the better AI can tailor your CV
+3. **Use AI Review**: Always run AI review before submitting. It catches fake data, missing keywords, and ATS issues
+4. **AI Modifier**: Use natural language to make changes ("Add React to skills", "Update bio to focus on leadership")
+5. **Re-analyze After Changes**: Use re-analysis feature to see how improvements affect your score
+6. **Cover Letter**: Let AI generate it first, then use AI Modifier to refine tone or length
 
 ---
 
 ## 🎊 What's Included
 
+### AI Features
+✅ AI-powered CV extraction from PDF/DOCX/JSON
+✅ Job-specific resume tailoring with Gemini 2.5 Pro
+✅ Intelligent AI enhancement with metrics and achievements
+✅ Comprehensive ATS review and scoring
+✅ AI cover letter generation
+✅ Natural language CV modification
+✅ Multiple file merging and intelligent deduplication
+✅ Fake data detection and validation
+
+### Design & UX
 ✅ 4 production-ready CV templates
-✅ Complete preview system
 ✅ Dark/light theme support
-✅ Approval workflow
+✅ Fully responsive design
 ✅ Type-safe data structure
-✅ Mock data for testing
 ✅ Comprehensive documentation
-✅ Responsive design
-✅ Smooth animations
-✅ 3D effects with SVG
 ✅ Clean, maintainable code
 
 ---
@@ -408,13 +439,15 @@ For commercial licensing inquiries, contact: yembot31013@gmail.com
 
 ---
 
-## 🎉 Ready to Create Your Stunning CV?
+## 🎉 Ready to Create Your AI-Enhanced CV?
 
 ```bash
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) and start exploring!
+Visit [http://localhost:3000](http://localhost:3000) and let AI transform your resume!
+
+**Workflow**: Upload → AI Extract → Job Description → AI Enhance → AI Review → Template → Cover Letter → Export
 
 ---
 
@@ -427,6 +460,6 @@ For issues or questions:
 
 ---
 
-**Made with ❤️ using Next.js, React, TypeScript, and Tailwind CSS**
+**Made with ❤️ using Google Gemini 2.5 Pro, Next.js, React, TypeScript, and Tailwind CSS**
 
-**Enjoy creating stunning CVs!** 🎨🚀
+**Powered by AI. Designed for Success.** 🤖🚀
