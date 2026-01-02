@@ -37,7 +37,13 @@ export class AICVExtractor {
       // Use gemini-2.5-pro which automatically enables thinking mode
       const response = await this.ai.models.generateContent({
         model: 'gemini-2.5-pro',
-        contents: contents
+        contents: contents,
+        config: {
+            tools: [
+        {urlContext: {}},
+        {googleSearch: {}}
+        ],
+          }
       });
 
       const text = response.text || '';

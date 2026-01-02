@@ -62,6 +62,12 @@ export class AIReviewer {
 
         const response = await chat.sendMessage({
           message: prompt,
+          config: {
+            tools: [
+        {urlContext: {}},
+        {googleSearch: {}}
+        ],
+          }
         });
 
         responseText = response.text || "";
@@ -77,6 +83,12 @@ export class AIReviewer {
         const response = await this.ai.models.generateContent({
           model: 'gemini-2.0-flash-exp',
           contents: [{ text: prompt }],
+          config: {
+            tools: [
+        {urlContext: {}},
+        {googleSearch: {}}
+        ],
+          }
         });
 
         responseText = response.text || "";

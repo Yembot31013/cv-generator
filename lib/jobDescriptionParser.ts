@@ -20,8 +20,14 @@ export class JobDescriptionParser {
 
     try {
       const response = await this.ai.models.generateContent({
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-2.5-flash',
         contents: prompt,
+        config: {
+            tools: [
+        {urlContext: {}},
+        {googleSearch: {}}
+        ],
+          }
       });
 
       const text = response.text || "";

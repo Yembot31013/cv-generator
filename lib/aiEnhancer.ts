@@ -60,6 +60,12 @@ export class AIEnhancer {
       const response = await this.ai.models.generateContent({
         model: 'gemini-2.0-flash-exp',
         contents: contents,
+        config: {
+            tools: [
+        {urlContext: {}},
+        {googleSearch: {}}
+        ],
+          }
       });
 
       const text = response.text || "";
