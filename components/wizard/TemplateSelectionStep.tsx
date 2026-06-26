@@ -10,6 +10,7 @@ import MinimalCV from '../cv-templates/MinimalCV';
 import CoverLetter from '../CoverLetter';
 import AIReviewModal from '../AIReviewModal';
 import AIModifierFloatingBar from '../AIModifierFloatingBar';
+import { downloadResumePdf, downloadCoverLetterPdf } from '@/lib/resumePdf';
 
 const templates = [
   { id: 'cyber', name: 'Cyber Web3', component: CyberCV, description: 'Modern 3D effects perfect for tech roles' },
@@ -46,6 +47,8 @@ export default function TemplateSelectionStep({
   const [previewTheme, setPreviewTheme] = useState<'dark' | 'light'>(theme);
   const [activeTab, setActiveTab] = useState<'resume' | 'cover-letter'>('resume');
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   
   // Local state for modifiable data
   const [currentCV, setCurrentCV] = useState<CVData>(enhancedCV);
@@ -75,6 +78,50 @@ export default function TemplateSelectionStep({
   const handleSelect = () => {
     onTemplateSelect(selectedTemplate);
   };
+
+  // Auto-dismiss toast notifications
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const handleDownload = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    setToast(null);
+
+    try {
+      if (activeTab === 'cover-letter') {
+        if (!currentCoverLetter?.trim()) {
+          setToast({ type: 'error', message: 'No cover letter available to download.' });
+          return;
+        }
+        downloadCoverLetterPdf(
+          currentCoverLetter,
+          {
+            fullName: currentCV.personalInfo?.fullName,
+            email: currentCV.personalInfo?.email,
+            phone: currentCV.personalInfo?.phone,
+            location: currentCV.personalInfo?.location,
+          },
+          { company: jobDescription?.company, title: jobDescription?.title },
+          selectedTemplate
+        );
+        setToast({ type: 'success', message: 'Cover letter downloaded.' });
+      } else {
+        downloadResumePdf(currentCV, selectedTemplate);
+        setToast({ type: 'success', message: 'Resume downloaded.' });
+      }
+    } catch (error) {
+      console.error('PDF download failed:', error);
+      setToast({ type: 'error', message: 'Could not generate the PDF. Please try again.' });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const downloadLabel = activeTab === 'cover-letter' ? 'Download Cover Letter' : 'Download Resume';
 
   const SelectedTemplateComponent = templates.find(t => t.id === selectedTemplate)?.component || CyberCV;
 
@@ -194,23 +241,39 @@ export default function TemplateSelectionStep({
               </button>
 
               <button
-                onClick={() => {
-                  alert('PDF export is coming soon! For now, please use your browser\'s print function (Ctrl/Cmd + P) to save as PDF.');
-                }}
+                onClick={handleDownload}
+                disabled={isDownloading}
                 className={`
-                  px-8 py-2 rounded-lg font-bold transition-all relative
-                  ${isDark
-                    ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  inline-flex items-center justify-center gap-2 px-6 py-2 rounded-lg font-bold transition-all shadow-lg
+                  ${isDownloading
+                    ? isDark
+                      ? 'bg-indigo-500/50 text-white/70 cursor-wait'
+                      : 'bg-indigo-400 text-white/80 cursor-wait'
+                    : isDark
+                    ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-indigo-500/25'
+                    : 'bg-gradient-to-r from-indigo-600 to-purple-700 text-white hover:from-indigo-700 hover:to-purple-800 shadow-indigo-500/30'
                   }
-                  shadow-lg
                 `}
-                title="Coming soon - Use browser print (Ctrl/Cmd + P) for now"
+                title={`Download your ${activeTab === 'cover-letter' ? 'cover letter' : 'resume'} as a PDF`}
               >
-                <span className="relative">
-                  Download PDF
-                  <span className="absolute -top-1 -right-6 text-xs bg-yellow-500 text-black px-1 rounded">Soon</span>
-                </span>
+                {isDownloading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <span>Generating…</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    <span>{downloadLabel}</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -340,8 +403,39 @@ export default function TemplateSelectionStep({
           cvData={currentCV}
           coverLetter={currentCoverLetter}
           jobDescription={jobDescription}
+          files={files}
+          onResumeModified={handleCVModified}
+          onCoverLetterModified={(content) =>
+            handleCoverLetterModified({
+              content,
+              salutation: 'Dear Hiring Manager,',
+              closing: 'Sincerely,',
+            })
+          }
           theme={theme}
         />
+      )}
+
+      {/* Download Toast */}
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`
+            fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl border backdrop-blur-md
+            ${toast.type === 'success'
+              ? isDark
+                ? 'bg-green-500/15 border-green-500/40 text-green-200'
+                : 'bg-green-50 border-green-300 text-green-800'
+              : isDark
+              ? 'bg-red-500/15 border-red-500/40 text-red-200'
+              : 'bg-red-50 border-red-300 text-red-800'
+            }
+          `}
+        >
+          <span className="text-lg" aria-hidden="true">{toast.type === 'success' ? '✅' : '⚠️'}</span>
+          <span className="text-sm font-medium">{toast.message}</span>
+        </div>
       )}
 
       {/* AI Modifier Floating Bar */}

@@ -1,5 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { CVData } from '@/types/cv';
+import { GEMINI_MODELS } from './geminiModels';
+import { withGeminiRetry } from './geminiRetry';
 
 /**
  * AI-powered CV extraction using Google Gemini
@@ -34,17 +36,16 @@ export class AICVExtractor {
         });
       }
 
-      // Use gemini-2.5-pro which automatically enables thinking mode
-      const response = await this.ai.models.generateContent({
-        model: 'gemini-2.5-pro',
-        contents: contents,
-        config: {
-            tools: [
-        {urlContext: {}},
-        {googleSearch: {}}
-        ],
-          }
-      });
+      // Use the Pro model which automatically enables thinking mode
+      const response = await withGeminiRetry(() =>
+        this.ai.models.generateContent({
+          model: GEMINI_MODELS.PRO,
+          contents: contents,
+          config: {
+            tools: [{ urlContext: {} }, { googleSearch: {} }],
+          },
+        })
+      );
 
       const text = response.text || '';
 

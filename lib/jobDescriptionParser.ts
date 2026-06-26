@@ -1,5 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { JobDescription } from '@/types/flow';
+import { GEMINI_MODELS } from './geminiModels';
+import { withGeminiRetry } from './geminiRetry';
 
 /**
  * AI-powered job description parser
@@ -19,16 +21,15 @@ export class JobDescriptionParser {
     const prompt = this.buildParsingPrompt(rawText);
 
     try {
-      const response = await this.ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-            tools: [
-        {urlContext: {}},
-        {googleSearch: {}}
-        ],
-          }
-      });
+      const response = await withGeminiRetry(() =>
+        this.ai.models.generateContent({
+          model: GEMINI_MODELS.FLASH,
+          contents: prompt,
+          config: {
+            tools: [{ urlContext: {} }, { googleSearch: {} }],
+          },
+        })
+      );
 
       const text = response.text || "";
 

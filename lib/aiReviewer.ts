@@ -2,6 +2,8 @@ import { GoogleGenAI } from '@google/genai';
 import { CVData } from '@/types/cv';
 import { JobDescription } from '@/types/flow';
 import { AIReviewResult, getScoreLevel } from '@/types/review';
+import { GEMINI_MODELS } from './geminiModels';
+import { withGeminiRetry } from './geminiRetry';
 
 /**
  * Chat message for review history
@@ -56,19 +58,18 @@ export class AIReviewer {
       if (isReAnalysis && session!.history.length > 0) {
         // Use chat API with history for re-analysis
         const chat = this.ai.chats.create({
-          model: 'gemini-2.0-flash-exp',
+          model: GEMINI_MODELS.FLASH,
           history: session!.history,
         });
 
-        const response = await chat.sendMessage({
-          message: prompt,
-          config: {
-            tools: [
-        {urlContext: {}},
-        {googleSearch: {}}
-        ],
-          }
-        });
+        const response = await withGeminiRetry(() =>
+          chat.sendMessage({
+            message: prompt,
+            config: {
+              tools: [{ urlContext: {} }, { googleSearch: {} }],
+            },
+          })
+        );
 
         responseText = response.text || "";
         
@@ -80,16 +81,15 @@ export class AIReviewer {
         ];
       } else {
         // First review - use single generation
-        const response = await this.ai.models.generateContent({
-          model: 'gemini-2.0-flash-exp',
-          contents: [{ text: prompt }],
-          config: {
-            tools: [
-        {urlContext: {}},
-        {googleSearch: {}}
-        ],
-          }
-        });
+        const response = await withGeminiRetry(() =>
+          this.ai.models.generateContent({
+            model: GEMINI_MODELS.FLASH,
+            contents: [{ text: prompt }],
+            config: {
+              tools: [{ urlContext: {} }, { googleSearch: {} }],
+            },
+          })
+        );
 
         responseText = response.text || "";
         

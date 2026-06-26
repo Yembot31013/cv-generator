@@ -17,9 +17,11 @@
 - 🤖 **AI-Powered Extraction** - Upload PDF, DOCX, or JSON files. Gemini 2.5 Pro extracts all CV data intelligently
 - 🎯 **Job-Specific Tailoring** - AI rewrites your resume to match job descriptions with keyword optimization
 - 📊 **AI Review & Scoring** - Get comprehensive ATS analysis, keyword matching, and improvement suggestions
+- ✨ **Fix with AI** - Apply review feedback with a confirmation dialog; add missing details (phone, URLs, metrics) before fixes run
 - ✨ **AI Enhancement** - Automatically adds metrics, achievements, and missing details based on industry standards
 - 📝 **AI Cover Letter Generation** - Creates personalized cover letters tailored to each job application
 - 🔧 **AI Modifier** - Make instant changes with natural language prompts ("Add Python to skills", "Update email to...")
+- 📥 **PDF Download** - Export resume and cover letter as clean, ATS-friendly PDFs matched to your selected template theme
 - 🧠 **Thinking Mode** - Uses Gemini 2.5 Pro with deep reasoning for intelligent data extraction and merging
 - 📚 **Multiple File Support** - Upload multiple resumes/documents and AI merges them intelligently
 
@@ -36,12 +38,11 @@
 
 This project is open-sourced to ensure full transparency.
 
-Users are required to provide their own AI API keys (e.g. OpenAI).
-The application does **not** collect, store, or transmit API keys to any
-server controlled by the author.
+Users provide their own **Google Gemini API key** via the in-app settings UI. Keys are stored **locally in your browser** (`localStorage`) and are **never sent to any server** controlled by the author.
 
-All AI requests are executed client-side or directly from the user's
-environment. You are encouraged to review the source code to verify this.
+All AI requests run **client-side** from your browser directly to Google's Gemini API. You are encouraged to review the source code to verify this.
+
+**Supported key formats:** Legacy `AIza…` keys and newer `AQ.…` auth keys from [Google AI Studio](https://aistudio.google.com/apikey).
 
 ---
 
@@ -57,18 +58,24 @@ npm install
 npm run dev
 ```
 
-### 2. Configure AI API Key
-1. Get your Google Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Create `.env.local` file in the root directory
-3. Add: `NEXT_PUBLIC_GEMINI_API_KEY=your_api_key_here`
+### 2. Configure Your Gemini API Key
+
+1. Get an API key from [Google AI Studio](https://aistudio.google.com/apikey)
+2. Open the app and paste your key in the **Gemini API Key** settings panel
+3. The key stays in your browser — no `.env` file required for normal use
+
+> Optional: You can also set `NEXT_PUBLIC_GEMINI_API_KEY` in `.env.local` for development.
 
 ### 3. Use the AI-Powered Workflow
+
 1. **Upload Your Resume** - Upload PDF, DOCX, or JSON files. AI extracts all data automatically
-2. **Add Job Description** - Paste the job posting. AI uses it to tailor your CV
+2. **Add Job Description** - Paste the job posting. AI parses and uses it to tailor your CV
 3. **AI Enhancement** - Watch AI rewrite and enhance your resume with metrics and achievements
-4. **AI Review** - Get comprehensive ATS analysis, keyword matching, and improvement suggestions
-5. **Select Template** - Choose from 4 beautiful templates to display your AI-enhanced CV
-6. **Generate Cover Letter** - AI creates a personalized cover letter tailored to the job
+4. **Select Template** - Choose from 4 beautiful templates and preview your tailored CV
+5. **AI Review** - Get ATS analysis, keyword matching, and scored improvement suggestions
+6. **Fix with AI** - Apply critical issues or quick wins; add context (e.g. phone number) in the dialog before confirming
+7. **Download PDF** - Export your resume or cover letter as a professional, ATS-friendly PDF
+8. **Generate Cover Letter** - AI creates a personalized cover letter tailored to the job
 
 ---
 
@@ -140,24 +147,35 @@ cv-generator/
 │   └── globals.css                 # Global styles
 │
 ├── components/
-│   ├── TemplatePreview.tsx         # Preview system
+│   ├── CVWizard.tsx                # Multi-step wizard orchestrator
+│   ├── AIReviewModal.tsx           # ATS review + Fix with AI dialog
+│   ├── AIModifierFloatingBar.tsx   # Natural-language CV editor
+│   ├── ApiKeyInput.tsx             # In-browser Gemini API key setup
+│   ├── CoverLetter.tsx             # Cover letter preview
+│   ├── wizard/                     # Upload, enhance, template steps
 │   └── cv-templates/
-│       ├── CyberCV.tsx            # Cyber Web3
-│       ├── NeonCV.tsx             # Neon Retro
-│       ├── GlassCV.tsx            # Glassmorphic
-│       └── MinimalCV.tsx          # Minimal Pro
+│       ├── CyberCV.tsx
+│       ├── NeonCV.tsx
+│       ├── GlassCV.tsx
+│       └── MinimalCV.tsx
+│
+├── lib/
+│   ├── aiCVExtractor.ts            # Resume extraction (Gemini 2.5 Pro)
+│   ├── aiEnhancer.ts               # CV enhancement & cover letter
+│   ├── aiReviewer.ts               # ATS review & scoring
+│   ├── aiModifier.ts               # Modifier + Fix from review
+│   ├── resumePdf.ts                # PDF export (vector, ATS-friendly)
+│   ├── geminiModels.ts             # Centralized model identifiers
+│   ├── geminiRetry.ts              # Transient API error retry
+│   └── jobDescriptionParser.ts     # Job posting parser
 │
 ├── types/
-│   └── cv.ts                       # TypeScript types
+│   ├── cv.ts                       # CV data types
+│   ├── flow.ts                     # Wizard flow types
+│   └── review.ts                   # AI review types
 │
-├── data/
-│   └── mockCV.ts                   # Sample data
-│
-└── docs/                           # Documentation
-    ├── QUICK_START.md
-    ├── TEMPLATES_GUIDE.md
-    ├── PROJECT_OVERVIEW.md
-    └── SUMMARY.md
+└── contexts/
+    └── ApiKeyContext.tsx           # Client-side API key state
 ```
 
 ---
@@ -203,25 +221,24 @@ export const mockCVData: CVData = {
 
 ---
 
-## 🎮 Control Panel
+## 🎮 Wizard Steps
 
-Located at the top of the page:
+The app guides you through a multi-step wizard (`CVWizard.tsx`):
 
-| Button | Function |
-|--------|----------|
-| ☀️ / 🌙 | Toggle theme (dark/light) |
-| ← Previous | Go to previous template |
-| Next → | Go to next template |
-| Request Changes | Submit feedback |
-| ✓ Approve | Approve current template |
-
-**Template Dots**: Click dots at bottom to jump to any template
+| Step | What happens |
+|------|----------------|
+| API Key | Paste your Gemini key (stored locally in browser) |
+| Upload | Upload PDF/DOCX/JSON — AI extracts your CV data |
+| Job Description | Paste or parse a job posting |
+| AI Enhance | Tailor and enhance your resume for the role |
+| Template | Pick a template, preview, review, fix, and download PDF |
 
 ---
 
 ## 🔧 Tech Stack
 
-- **AI Engine**: Google Gemini 2.5 Pro with Thinking Mode
+- **AI Engine**: Google Gemini (`gemini-2.5-pro` for extraction, `gemini-2.5-flash` for enhancement/review/modify)
+- **PDF Export**: jsPDF vector generation (`lib/resumePdf.ts`) — selectable text, template-themed accents
 - **Framework**: Next.js 16.1.1 with App Router
 - **UI Library**: React 19.2.3
 - **Language**: TypeScript 5
@@ -249,14 +266,17 @@ npm run lint     # Run ESLint
 2. **Job-Specific Tailoring** - Provide a job description. AI rewrites your resume to match keywords and requirements
 3. **Intelligent Enhancement** - AI adds metrics, achievements, and missing details based on industry standards
 4. **ATS Review** - Get comprehensive scoring on job alignment, keyword optimization, and ATS compatibility
-5. **Natural Language Editing** - Use AI Modifier to make changes with simple prompts ("Add Python to skills", "Update email")
-6. **Cover Letter Generation** - AI creates personalized cover letters tailored to each job application
-7. **Beautiful Templates** - Display your AI-enhanced CV in 4 stunning, professional templates
+5. **Fix with AI** - Apply review feedback in a dialog; supply missing facts (phone, URL, metrics) before confirming
+6. **Natural Language Editing** - Use AI Modifier to make changes with simple prompts ("Add Python to skills", "Update email")
+7. **Cover Letter Generation** - AI creates personalized cover letters tailored to each job application
+8. **PDF Download** - Export resume or cover letter as ATS-friendly PDF with template-matched styling
+9. **Beautiful Templates** - Display your AI-enhanced CV in 4 stunning, professional templates
 
 ### 🧠 AI Capabilities
 
-- **Deep Reasoning** - Uses Gemini 2.5 Pro Thinking Mode for intelligent data extraction
+- **Deep Reasoning** - Uses Gemini 2.5 Pro for intelligent data extraction
 - **Context Understanding** - Understands relationships between experiences, skills, and job requirements
+- **Safe Fix from Review** - Baseline snapshot preserves original facts; user context fills gaps the AI cannot invent
 - **Intelligent Merging** - Combines multiple documents without duplication
 - **ATS Optimization** - Analyzes keyword matching and suggests improvements
 - **Fake Data Detection** - Identifies placeholder contact info and dummy data
@@ -299,9 +319,9 @@ This project is **AI-native first**:
    npm install
    ```
 
-2. **Set Up AI API Key**
-   - Get your Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
-   - Create `.env.local` file: `NEXT_PUBLIC_GEMINI_API_KEY=your_key_here`
+2. **Set Up Gemini API Key**
+   - Get your key from [Google AI Studio](https://aistudio.google.com/apikey)
+   - Paste it in the app's API key settings (stored locally in your browser)
 
 3. **Start the App**
    ```bash
@@ -322,18 +342,17 @@ This project is **AI-native first**:
    - Adds metrics, achievements, and missing details
    - Tailors content to match job requirements
 
-7. **Review & Improve**
-   - Get AI-powered ATS analysis
-   - See keyword matching and improvement suggestions
-   - Use AI Modifier for instant changes
+7. **Review & Fix**
+   - Run AI Review for ATS scores and keyword analysis
+   - Click **Fix with AI** → review what will change → add context for missing info → apply
+   - Click **Re-analyze** to see your updated score
 
 8. **Generate Cover Letter**
-   - AI creates personalized cover letter
-   - Tailored to the specific job and your experience
+   - AI creates a personalized cover letter tailored to the job
 
-9. **Choose Template & Export**
-   - Select from 4 beautiful templates
-   - Export your AI-enhanced CV
+9. **Download PDF**
+   - Click **Download Resume** or **Download Cover Letter** on the template step
+   - PDF uses your selected template's accent theme; text is selectable and ATS-friendly
 
 ---
 
@@ -341,10 +360,12 @@ This project is **AI-native first**:
 
 1. **Upload Multiple Files**: Upload old + new resumes, portfolios, and project docs. AI merges them intelligently
 2. **Detailed Job Descriptions**: The more detail you provide, the better AI can tailor your CV
-3. **Use AI Review**: Always run AI review before submitting. It catches fake data, missing keywords, and ATS issues
-4. **AI Modifier**: Use natural language to make changes ("Add React to skills", "Update bio to focus on leadership")
-5. **Re-analyze After Changes**: Use re-analysis feature to see how improvements affect your score
-6. **Cover Letter**: Let AI generate it first, then use AI Modifier to refine tone or length
+3. **Use AI Review**: Run review before applying. It catches missing keywords, weak bullets, and ATS issues
+4. **Fix with AI**: When review flags missing contact info or data, open the fix dialog and paste the real values before applying
+5. **Re-analyze After Fixes**: Always re-analyze after Fix with AI to confirm your score improved
+6. **AI Modifier**: Use natural language for one-off edits ("Add React to skills", "Update bio to focus on leadership")
+7. **PDF vs Screen**: On-screen templates are rich/visual; downloaded PDFs are clean single-column layouts optimized for recruiters and ATS parsers
+8. **Cover Letter**: Let AI generate it first, then use AI Modifier to refine tone or length
 
 ---
 
@@ -355,10 +376,13 @@ This project is **AI-native first**:
 ✅ Job-specific resume tailoring with Gemini 2.5 Pro
 ✅ Intelligent AI enhancement with metrics and achievements
 ✅ Comprehensive ATS review and scoring
+✅ Fix with AI (scoped fixes + user context dialog)
 ✅ AI cover letter generation
 ✅ Natural language CV modification
+✅ PDF download (resume + cover letter, template-themed)
 ✅ Multiple file merging and intelligent deduplication
 ✅ Fake data detection and validation
+✅ Transient API error retry (503/429 backoff)
 
 ### Design & UX
 ✅ 4 production-ready CV templates
@@ -372,43 +396,28 @@ This project is **AI-native first**:
 
 ## 🤝 Contributing
 
-We welcome contributions! Here are specific features that are **coming soon** and need implementation:
+We welcome contributions! Here are areas that still need work:
 
-### 🚀 Coming Soon Features
+### 🚀 Open Feature Requests
 
-#### 1. **PDF Export/Download** 📄
-- **Status**: Partially implemented (code exists in `lib/pdfExport.ts`) but UI shows "coming soon"
-- **What's needed**: 
-  - Connect the export function to the download button in `TemplateSelectionStep.tsx`
-  - Replace the alert message with actual PDF download functionality
-  - Test PDF generation with all 4 templates
-  - Ensure proper formatting and page breaks
-
-#### 2. **Copy Feature in Cover Letter Section** 📋
-- **Status**: Cover letter component exists but no copy button
+#### 1. **Copy Feature in Cover Letter Section** 📋
+- **Status**: Cover letter preview exists but no copy-to-clipboard button
 - **What's needed**:
   - Add a "Copy to Clipboard" button in the cover letter preview
-  - Implement copy functionality that copies the formatted cover letter text
-  - Add visual feedback when copy is successful
+  - Visual feedback on successful copy
   - Handle both plain text and formatted versions
 
-#### 3. **Auto Fix in AI Review** ✨
-- **Status**: "Fix with AI" button exists but shows "coming soon" alert
+#### 2. **More Template Designs** 🎨
+- **Status**: 4 templates (Cyber, Neon, Glass, Minimal)
 - **What's needed**:
-  - Implement auto-fix functionality in `AIReviewModal.tsx`
-  - Connect to AI modifier to automatically apply suggested improvements
-  - Allow users to fix critical issues, quick wins, or specific sections
-  - Show before/after comparison
-  - Apply fixes to both resume and cover letter
+  - New template components in `components/cv-templates/`
+  - Register in `TemplateSelectionStep.tsx` and `lib/resumePdf.ts` theme map
+  - Dark/light theme support
 
-#### 4. **More Template Designs** 🎨
-- **Status**: Currently 4 templates (Cyber, Neon, Glass, Minimal)
-- **What's needed**:
-  - Create new template components in `components/cv-templates/`
-  - Add to template selection in `TemplateSelectionStep.tsx`
-  - Ensure dark/light theme support
-  - Follow existing template structure and TypeScript types
-  - Ideas: Corporate Classic, Creative Portfolio, Academic, Modern Minimal, etc.
+### ✅ Recently Shipped
+
+- **PDF Export** — `lib/resumePdf.ts`; download from template step with per-template accent themes
+- **Fix with AI** — Review modal dialog with scoped fixes, user context input, and baseline fact preservation (`lib/aiModifier.ts`)
 
 ### 🐛 Other Contribution Areas
 
@@ -447,7 +456,7 @@ npm run dev
 
 Visit [http://localhost:3000](http://localhost:3000) and let AI transform your resume!
 
-**Workflow**: Upload → AI Extract → Job Description → AI Enhance → AI Review → Template → Cover Letter → Export
+**Workflow**: Upload → AI Extract → Job Description → AI Enhance → Template → AI Review → Fix with AI → Download PDF
 
 ---
 

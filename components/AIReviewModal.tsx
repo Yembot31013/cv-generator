@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { CVData } from "@/types/cv";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { CVData, CoverLetter } from "@/types/cv";
 import { JobDescription } from "@/types/flow";
 import {
   AIReviewResult,
@@ -14,6 +14,7 @@ import {
   KeywordMatch,
 } from "@/types/review";
 import { createAIReviewer, ReviewSession } from "@/lib/aiReviewer";
+import { createAIModifier, ReviewFixScope, getReviewFixGroups, REVIEW_FIX_SCOPE_LABELS } from "@/lib/aiModifier";
 import { useApiKey } from "@/contexts/ApiKeyContext";
 
 interface AIReviewModalProps {
@@ -22,6 +23,9 @@ interface AIReviewModalProps {
   cvData: CVData;
   coverLetter?: string | null;
   jobDescription: JobDescription;
+  files?: File[];
+  onResumeModified?: (cv: CVData) => void;
+  onCoverLetterModified?: (content: string) => void;
   theme?: "dark" | "light";
 }
 
@@ -619,6 +623,227 @@ function LoadingAnimation({
   );
 }
 
+// Fix with AI — confirmation dialog with optional user context
+function FixWithAIDialog({
+  isOpen,
+  scope,
+  review,
+  userContext,
+  onContextChange,
+  onConfirm,
+  onClose,
+  isApplying,
+  isDark,
+}: {
+  isOpen: boolean;
+  scope: ReviewFixScope | null;
+  review: AIReviewResult | null;
+  userContext: string;
+  onContextChange: (value: string) => void;
+  onConfirm: () => void;
+  onClose: () => void;
+  isApplying: boolean;
+  isDark: boolean;
+}) {
+  if (!isOpen || !scope || !review) return null;
+
+  const groups = getReviewFixGroups(review, scope);
+  const totalItems = groups.reduce((n, g) => n + g.items.length, 0);
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={isApplying ? undefined : onClose}
+        aria-hidden="true"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="fix-with-ai-title"
+        className={`
+          relative w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden
+          ${isDark ? "bg-gray-900 border border-gray-700" : "bg-white border border-gray-200"}
+        `}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className={`px-6 py-5 border-b ${
+            isDark ? "border-gray-800 bg-gray-900/80" : "border-gray-100 bg-gray-50/80"
+          }`}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3
+                id="fix-with-ai-title"
+                className={`text-lg font-bold ${isDark ? "text-white" : "text-gray-900"}`}
+              >
+                Fix with AI
+              </h3>
+              <p className={`text-sm mt-1 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                {REVIEW_FIX_SCOPE_LABELS[scope]}
+                {totalItems > 0 && ` · ${totalItems} item${totalItems === 1 ? "" : "s"}`}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isApplying}
+              className={`p-2 rounded-lg transition-colors shrink-0 ${
+                isDark
+                  ? "text-gray-400 hover:text-white hover:bg-gray-800"
+                  : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+              } ${isApplying ? "opacity-50 cursor-not-allowed" : ""}`}
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <div className="px-6 py-5 space-y-5 max-h-[min(60vh,420px)] overflow-y-auto">
+          {groups.length > 0 ? (
+            <div className="space-y-4">
+              {groups.map((group) => (
+                <div key={group.label}>
+                  <p
+                    className={`text-xs font-bold uppercase tracking-wider mb-2 ${
+                      isDark ? "text-gray-500" : "text-gray-500"
+                    }`}
+                  >
+                    {group.label}
+                  </p>
+                  <ul className="space-y-2">
+                    {group.items.map((item, idx) => (
+                      <li
+                        key={idx}
+                        className={`text-sm flex gap-2 ${
+                          isDark ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        <span
+                          className={`shrink-0 mt-0.5 ${
+                            isDark ? "text-emerald-500" : "text-emerald-600"
+                          }`}
+                        >
+                          •
+                        </span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+              No items in this scope. Try a different fix option.
+            </p>
+          )}
+
+          <div>
+            <label
+              htmlFor="fix-user-context"
+              className={`block text-sm font-semibold mb-2 ${
+                isDark ? "text-white" : "text-gray-900"
+              }`}
+            >
+              Additional context
+              <span className={`font-normal ml-1 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+                (recommended)
+              </span>
+            </label>
+            <p className={`text-xs mb-3 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+              Add details the AI needs to apply fixes — e.g. phone number, email, URLs, or
+              metrics the review flagged as missing.
+            </p>
+            <textarea
+              id="fix-user-context"
+              value={userContext}
+              onChange={(e) => onContextChange(e.target.value)}
+              disabled={isApplying}
+              rows={4}
+              placeholder={`Example:\nPhone: +1 (555) 123-4567\nPortfolio: https://myportfolio.dev\nAdd AWS to skills — I use it daily at work`}
+              className={`
+                w-full px-4 py-3 rounded-xl text-sm resize-none transition-all
+                ${
+                  isDark
+                    ? "bg-gray-800 text-white placeholder-gray-500 border border-gray-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                    : "bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                }
+                focus:outline-none disabled:opacity-60
+              `}
+            />
+          </div>
+
+          <div
+            className={`flex items-start gap-2 p-3 rounded-xl text-xs ${
+              isDark
+                ? "bg-indigo-500/10 border border-indigo-500/20 text-indigo-200"
+                : "bg-indigo-50 border border-indigo-100 text-indigo-800"
+            }`}
+          >
+            <span className="shrink-0">🔒</span>
+            <p>
+              Your original resume facts are preserved. Only the details you provide here and
+              existing data are used — nothing is invented.
+            </p>
+          </div>
+        </div>
+
+        <div
+          className={`px-6 py-4 flex gap-3 border-t ${
+            isDark ? "border-gray-800 bg-gray-900/50" : "border-gray-100 bg-gray-50/50"
+          }`}
+        >
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isApplying}
+            className={`
+              flex-1 py-2.5 rounded-xl font-medium text-sm transition-all
+              ${
+                isDark
+                  ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                  : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+              }
+              ${isApplying ? "opacity-50 cursor-not-allowed" : ""}
+            `}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isApplying || groups.length === 0}
+            className={`
+              flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2
+              ${
+                isApplying || groups.length === 0
+                  ? isDark
+                    ? "bg-emerald-500/30 text-emerald-200/60 cursor-not-allowed"
+                    : "bg-emerald-200 text-emerald-700/60 cursor-not-allowed"
+                  : isDark
+                  ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400"
+                  : "bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-500 hover:to-teal-500"
+              }
+            `}
+          >
+            {isApplying ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Applying…
+              </>
+            ) : (
+              <>Apply fixes</>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Main Modal Component
 export default function AIReviewModal({
   isOpen,
@@ -626,17 +851,56 @@ export default function AIReviewModal({
   cvData,
   coverLetter,
   jobDescription,
+  files,
+  onResumeModified,
+  onCoverLetterModified,
   theme = "dark",
 }: AIReviewModalProps) {
   const isDark = theme === "dark";
   const { apiKey } = useApiKey();
   const [isLoading, setIsLoading] = useState(false);
+  const [isFixing, setIsFixing] = useState(false);
+  const [fixScope, setFixScope] = useState<ReviewFixScope | null>(null);
+  const [fixDialogOpen, setFixDialogOpen] = useState(false);
+  const [pendingFixScope, setPendingFixScope] = useState<ReviewFixScope | null>(null);
+  const [fixUserContext, setFixUserContext] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [fixMessage, setFixMessage] = useState<string | null>(null);
   const [review, setReview] = useState<AIReviewResult | null>(null);
   const [session, setSession] = useState<ReviewSession | undefined>(undefined);
   const [activeTab, setActiveTab] = useState<
     "resume" | "cover-letter" | "keywords"
   >("resume");
+
+  /** Immutable factual snapshot captured when the review modal opens. */
+  const baselineRef = useRef<{ cv: CVData; coverLetter?: CoverLetter } | null>(
+    null
+  );
+
+  const toCoverLetterObject = useCallback(
+    (content?: string | null): CoverLetter | undefined =>
+      content?.trim()
+        ? {
+            content: content.trim(),
+            salutation: "Dear Hiring Manager,",
+            closing: "Sincerely,",
+          }
+        : undefined,
+    []
+  );
+
+  useEffect(() => {
+    if (!isOpen) {
+      baselineRef.current = null;
+      return;
+    }
+    baselineRef.current = {
+      cv: structuredClone(cvData),
+      coverLetter: toCoverLetterObject(coverLetter),
+    };
+    // Capture baseline once per modal open — not on subsequent cvData updates after fixes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && !review && !isLoading) {
@@ -674,6 +938,95 @@ export default function AIReviewModal({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const openFixDialog = (scope: ReviewFixScope) => {
+    setPendingFixScope(scope);
+    setFixUserContext("");
+    setFixDialogOpen(true);
+  };
+
+  const closeFixDialog = () => {
+    if (isFixing) return;
+    setFixDialogOpen(false);
+    setPendingFixScope(null);
+    setFixUserContext("");
+  };
+
+  const handleFixFromReview = async (scope: ReviewFixScope, userContext?: string) => {
+    if (!apiKey) {
+      setError("API key not configured");
+      return;
+    }
+    if (!review) return;
+    if (!onResumeModified) {
+      setError("Cannot apply fixes — resume update handler is missing.");
+      return;
+    }
+    if (!baselineRef.current) {
+      setError("Baseline snapshot missing. Close and reopen the review.");
+      return;
+    }
+
+    setIsFixing(true);
+    setFixScope(scope);
+    setError(null);
+    setFixMessage(null);
+
+    try {
+      const modifier = createAIModifier(apiKey);
+      const workingCoverLetter = toCoverLetterObject(coverLetter);
+
+      const result = await modifier.fixFromReview(
+        review,
+        scope,
+        cvData,
+        workingCoverLetter,
+        baselineRef.current.cv,
+        baselineRef.current.coverLetter,
+        jobDescription,
+        files,
+        userContext
+      );
+
+      if (!result.success) {
+        setFixMessage(result.message);
+        return;
+      }
+
+      if (result.modifiedResume) {
+        onResumeModified(result.modifiedResume);
+      }
+      if (result.modifiedCoverLetter && onCoverLetterModified) {
+        onCoverLetterModified(result.modifiedCoverLetter.content);
+      }
+
+      const changeSummary =
+        result.changes.length > 0
+          ? result.changes.slice(0, 3).join(" · ")
+          : result.message;
+
+      setFixMessage(
+        `Changes applied. Re-analyze to see your updated score. ${changeSummary}`
+      );
+      setFixDialogOpen(false);
+      setPendingFixScope(null);
+      setFixUserContext("");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to apply fixes. Please try again."
+      );
+    } finally {
+      setIsFixing(false);
+      setFixScope(null);
+    }
+  };
+
+  const handleConfirmFix = () => {
+    if (!pendingFixScope) return;
+    handleFixFromReview(pendingFixScope, fixUserContext);
   };
 
   if (!isOpen) return null;
@@ -768,44 +1121,37 @@ export default function AIReviewModal({
             <div className="flex items-center gap-3">
               {review && (
                 <>
-                  {/* Fix with AI Button - Coming Soon */}
                   <button
-                    onClick={() => {
-                      alert(
-                        "🚀 Fix with AI is coming soon!\n\nThis feature will automatically apply suggested improvements to your resume based on the review feedback."
-                      );
-                    }}
+                    onClick={() => openFixDialog("all")}
+                    disabled={isFixing || isLoading || !onResumeModified}
                     className={`
                       relative px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2
-                      cursor-not-allowed
+                      ${isFixing || isLoading ? "opacity-60 cursor-wait" : ""}
                       ${
                         isDark
-                          ? "bg-linear-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400/70 border border-emerald-500/30"
-                          : "bg-linear-to-r from-emerald-50 to-teal-50 text-emerald-600/70 border border-emerald-300"
+                          ? "bg-linear-to-r from-emerald-500/20 to-teal-500/20 text-emerald-300 border border-emerald-500/30 hover:from-emerald-500/30 hover:to-teal-500/30"
+                          : "bg-linear-to-r from-emerald-50 to-teal-50 text-emerald-700 border border-emerald-300 hover:from-emerald-100 hover:to-teal-100"
                       }
                     `}
-                    title="Coming soon - Auto-fix issues with AI"
+                    title="Apply review feedback to your resume and cover letter"
                   >
-                    <span>✨</span>
-                    <span>Fix with AI</span>
-                    <span
-                      className={`
-                        text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase
-                        ${
-                          isDark
-                            ? "bg-emerald-500/30 text-emerald-300"
-                            : "bg-emerald-200 text-emerald-700"
-                        }
-                      `}
-                    >
-                      Soon
-                    </span>
+                    {isFixing && fixScope === "all" ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                        <span>Applying…</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>✨</span>
+                        <span>Fix with AI</span>
+                      </>
+                    )}
                   </button>
 
                   {/* Re-analyze Button */}
                   <button
                     onClick={handleReview}
-                    disabled={isLoading}
+                    disabled={isLoading || isFixing}
                     className={`
                       px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2
                       ${isLoading ? "opacity-50 cursor-not-allowed" : ""}
@@ -955,6 +1301,43 @@ export default function AIReviewModal({
             </div>
           ) : review ? (
             <>
+              {(fixMessage || (isFixing && fixScope)) && (
+                <div
+                  className={`
+                    max-w-5xl mx-auto mb-6 px-4 py-3 rounded-xl border text-sm flex items-start gap-3
+                    ${
+                      fixMessage?.includes("applied")
+                        ? isDark
+                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-200"
+                          : "bg-emerald-50 border-emerald-200 text-emerald-800"
+                        : isDark
+                        ? "bg-amber-500/10 border-amber-500/30 text-amber-200"
+                        : "bg-amber-50 border-amber-200 text-amber-800"
+                    }
+                  `}
+                >
+                  <span className="text-lg shrink-0" aria-hidden="true">
+                    {isFixing ? "⏳" : fixMessage?.includes("applied") ? "✅" : "💡"}
+                  </span>
+                  <div>
+                    <p className="font-medium">
+                      {isFixing
+                        ? "Applying review fixes — your factual baseline is preserved…"
+                        : fixMessage}
+                    </p>
+                    {fixMessage?.includes("applied") && !isFixing && (
+                      <p
+                        className={`mt-1 text-xs ${
+                          isDark ? "text-emerald-300/80" : "text-emerald-700/80"
+                        }`}
+                      >
+                        Your original facts are kept on file. Click Re-analyze to
+                        score the updated resume.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
               {/* Resume Tab */}
               {activeTab === "resume" && (
                 <div className="space-y-8 max-w-5xl mx-auto">
@@ -1159,35 +1542,29 @@ export default function AIReviewModal({
                       {/* Fix with AI button for critical issues */}
                       {review.resumeReview.criticalIssues.length > 0 && (
                         <button
-                          onClick={() => {
-                            alert(
-                              "🚀 Fix with AI is coming soon!\n\nThis feature will automatically fix these critical issues in your resume."
-                            );
-                          }}
+                          onClick={() => openFixDialog("critical")}
+                          disabled={isFixing || isLoading || !onResumeModified}
                           className={`
                             mt-4 w-full py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2
-                            cursor-not-allowed
+                            ${isFixing || isLoading ? "opacity-60 cursor-wait" : ""}
                             ${
                               isDark
-                                ? "bg-red-500/20 text-red-300/70 border border-red-500/30 hover:bg-red-500/30"
-                                : "bg-red-100 text-red-600/70 border border-red-300"
+                                ? "bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30"
+                                : "bg-red-100 text-red-700 border border-red-300 hover:bg-red-200"
                             }
                           `}
                         >
-                          <span>✨</span>
-                          <span>Fix All Issues</span>
-                          <span
-                            className={`
-                              text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase
-                              ${
-                                isDark
-                                  ? "bg-red-500/30 text-red-200"
-                                  : "bg-red-200 text-red-700"
-                              }
-                            `}
-                          >
-                            Soon
-                          </span>
+                          {isFixing && fixScope === "critical" ? (
+                            <>
+                              <span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                              <span>Fixing…</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>✨</span>
+                              <span>Fix All Issues</span>
+                            </>
+                          )}
                         </button>
                       )}
                     </div>
@@ -1236,35 +1613,29 @@ export default function AIReviewModal({
                       {/* Apply Quick Wins button */}
                       {review.resumeReview.quickWins.length > 0 && (
                         <button
-                          onClick={() => {
-                            alert(
-                              "🚀 Fix with AI is coming soon!\n\nThis feature will automatically apply these quick wins to boost your resume score."
-                            );
-                          }}
+                          onClick={() => openFixDialog("quick_wins")}
+                          disabled={isFixing || isLoading || !onResumeModified}
                           className={`
                             mt-4 w-full py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2
-                            cursor-not-allowed
+                            ${isFixing || isLoading ? "opacity-60 cursor-wait" : ""}
                             ${
                               isDark
-                                ? "bg-indigo-500/20 text-indigo-300/70 border border-indigo-500/30 hover:bg-indigo-500/30"
-                                : "bg-indigo-100 text-indigo-600/70 border border-indigo-300"
+                                ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30"
+                                : "bg-indigo-100 text-indigo-700 border border-indigo-300 hover:bg-indigo-200"
                             }
                           `}
                         >
-                          <span>✨</span>
-                          <span>Apply Quick Wins</span>
-                          <span
-                            className={`
-                              text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase
-                              ${
-                                isDark
-                                  ? "bg-indigo-500/30 text-indigo-200"
-                                  : "bg-indigo-200 text-indigo-700"
-                              }
-                            `}
-                          >
-                            Soon
-                          </span>
+                          {isFixing && fixScope === "quick_wins" ? (
+                            <>
+                              <span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                              <span>Applying…</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>✨</span>
+                              <span>Apply Quick Wins</span>
+                            </>
+                          )}
                         </button>
                       )}
                     </div>
@@ -1716,6 +2087,18 @@ export default function AIReviewModal({
           ) : null}
         </div>
       </div>
+
+      <FixWithAIDialog
+        isOpen={fixDialogOpen}
+        scope={pendingFixScope}
+        review={review}
+        userContext={fixUserContext}
+        onContextChange={setFixUserContext}
+        onConfirm={handleConfirmFix}
+        onClose={closeFixDialog}
+        isApplying={isFixing}
+        isDark={isDark}
+      />
 
       {/* Animations & Custom Scrollbar */}
       <style jsx>{`

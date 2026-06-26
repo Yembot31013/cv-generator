@@ -1,6 +1,9 @@
 import { GoogleGenAI } from '@google/genai';
 import { CVData, CoverLetter } from '@/types/cv';
 import { JobDescription } from '@/types/flow';
+import { AIReviewResult } from '@/types/review';
+import { GEMINI_MODELS } from './geminiModels';
+import { withGeminiRetry } from './geminiRetry';
 
 /**
  * Result of a modification request
@@ -12,6 +15,88 @@ export interface ModificationResult {
   modifiedResume?: CVData;
   modifiedCoverLetter?: CoverLetter;
   changes: string[]; // List of specific changes made
+}
+
+/** Which review feedback items to apply when fixing. */
+export type ReviewFixScope = 'all' | 'critical' | 'quick_wins';
+
+/** Grouped review items shown in the Fix with AI dialog. */
+export interface ReviewFixGroup {
+  label: string;
+  items: string[];
+}
+
+/** Human-readable scope labels for the fix dialog. */
+export const REVIEW_FIX_SCOPE_LABELS: Record<ReviewFixScope, string> = {
+  all: 'All review feedback',
+  critical: 'Critical issues',
+  quick_wins: 'Quick wins',
+};
+
+/**
+ * Build grouped fix items for UI preview (Fix with AI dialog).
+ */
+export function getReviewFixGroups(
+  review: AIReviewResult,
+  scope: ReviewFixScope
+): ReviewFixGroup[] {
+  const groups: ReviewFixGroup[] = [];
+  const { resumeReview, coverLetterReview } = review;
+
+  if (scope === 'all' || scope === 'critical') {
+    if (resumeReview.criticalIssues.length) {
+      groups.push({ label: 'Resume — Critical issues', items: [...resumeReview.criticalIssues] });
+    }
+    if (coverLetterReview?.criticalIssues.length) {
+      groups.push({
+        label: 'Cover letter — Critical issues',
+        items: [...coverLetterReview.criticalIssues],
+      });
+    }
+  }
+
+  if (scope === 'all' || scope === 'quick_wins') {
+    if (resumeReview.quickWins.length) {
+      groups.push({ label: 'Resume — Quick wins', items: [...resumeReview.quickWins] });
+    }
+    if (coverLetterReview?.quickWins.length) {
+      groups.push({ label: 'Cover letter — Quick wins', items: [...coverLetterReview.quickWins] });
+    }
+  }
+
+  if (scope === 'all') {
+    const highPrioritySuggestions = Object.values(resumeReview.categories)
+      .filter((c) => c.importance === 'high' && c.suggestions.length > 0)
+      .flatMap((c) => c.suggestions.map((s) => `${c.title}: ${s}`));
+    if (highPrioritySuggestions.length) {
+      groups.push({ label: 'High-priority suggestions', items: highPrioritySuggestions });
+    }
+
+    const missingCritical = resumeReview.keywordAnalysis.missingKeywords
+      .filter((k) => k.importance === 'critical' && !k.found)
+      .map((k) => `Add keyword: ${k.keyword}${k.context ? ` (${k.context})` : ''}`);
+    if (missingCritical.length) {
+      groups.push({ label: 'Missing critical keywords', items: missingCritical });
+    }
+
+    if (coverLetterReview) {
+      const clSuggestions = Object.values(coverLetterReview.categories)
+        .filter((c) => c.importance === 'high' && c.suggestions.length > 0)
+        .flatMap((c) => c.suggestions.map((s) => `${c.title}: ${s}`));
+      if (clSuggestions.length) {
+        groups.push({ label: 'Cover letter suggestions', items: clSuggestions });
+      }
+    }
+  }
+
+  return groups;
+}
+
+function formatReviewFeedback(groups: ReviewFixGroup[]): string {
+  if (!groups.length) return 'No actionable feedback in this scope.';
+  return groups
+    .map((g) => `**${g.label}:**\n${g.items.map((item, i) => `${i + 1}. ${item}`).join('\n')}`)
+    .join('\n\n');
 }
 
 /**
@@ -74,16 +159,15 @@ export class AIModifier {
         }
       }
 
-      const response = await this.ai.models.generateContent({
-        model: 'gemini-2.0-flash-exp',
-        contents: contents,
-        config: {
-            tools: [
-        {urlContext: {}},
-        {googleSearch: {}}
-        ],
-          }
-      });
+      const response = await withGeminiRetry(() =>
+        this.ai.models.generateContent({
+          model: GEMINI_MODELS.FLASH,
+          contents: contents,
+          config: {
+            tools: [{ urlContext: {} }, { googleSearch: {} }],
+          },
+        })
+      );
 
       const text = response.text || "";
 
@@ -98,6 +182,75 @@ export class AIModifier {
     } catch (error) {
       console.error('AI Modification Error:', error);
       throw new Error('Failed to modify. Please try again.');
+    }
+  }
+
+  /**
+   * Apply AI Review feedback to the working resume/cover letter.
+   *
+   * Context model (important for quality):
+   * - `workingResume` / `workingCoverLetter` — the documents to edit (current live state).
+   * - `baselineResume` / `baselineCoverLetter` — immutable factual reference captured when
+   *   the review opened. Used to prevent fabricated or drifted facts across chained fixes.
+   * - `review` — advisory feedback only; never treated as ground truth over baseline facts.
+   */
+  async fixFromReview(
+    review: AIReviewResult,
+    scope: ReviewFixScope,
+    workingResume: CVData,
+    workingCoverLetter: CoverLetter | undefined,
+    baselineResume: CVData,
+    baselineCoverLetter: CoverLetter | undefined,
+    jobDescription: JobDescription,
+    files?: File[],
+    userContext?: string
+  ): Promise<ModificationResult> {
+    const systemPrompt = this.buildReviewFixPrompt(
+      review,
+      scope,
+      workingResume,
+      workingCoverLetter,
+      baselineResume,
+      baselineCoverLetter,
+      jobDescription,
+      userContext
+    );
+
+    try {
+      const contents: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
+        { text: systemPrompt },
+      ];
+
+      if (files && files.length > 0) {
+        for (const file of files) {
+          const fileData = await this.fileToBase64(file);
+          contents.push({
+            inlineData: {
+              mimeType: file.type,
+              data: fileData,
+            },
+          });
+        }
+      }
+
+      const response = await withGeminiRetry(() =>
+        this.ai.models.generateContent({
+          model: GEMINI_MODELS.FLASH,
+          contents,
+        })
+      );
+
+      const text = response.text || '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Failed to extract JSON from AI response');
+      }
+
+      const result = JSON.parse(jsonMatch[0]);
+      return this.validateAndCompleteResult(result, workingResume, workingCoverLetter);
+    } catch (error) {
+      console.error('AI Review Fix Error:', error);
+      throw new Error('Failed to apply review fixes. Please try again.');
     }
   }
 
@@ -211,6 +364,106 @@ User: "hello"
 → Invalid. Return: { success: false, type: "invalid", message: "Please provide a specific modification request, such as 'Update my phone number to X' or 'Add Y to my experience'.", changes: [] }
 
 Now analyze the user's request and respond with the appropriate JSON.`;
+  }
+
+  /**
+   * Build a prompt that applies scoped review feedback while preserving factual integrity.
+   */
+  private buildReviewFixPrompt(
+    review: AIReviewResult,
+    scope: ReviewFixScope,
+    workingResume: CVData,
+    workingCoverLetter: CoverLetter | undefined,
+    baselineResume: CVData,
+    baselineCoverLetter: CoverLetter | undefined,
+    job: JobDescription,
+    userContext?: string
+  ): string {
+    const feedback = formatReviewFeedback(getReviewFixGroups(review, scope));
+    const trimmedContext = userContext?.trim();
+
+    return `You are an expert resume editor applying TARGETED fixes from an AI review. You edit the WORKING documents below. Review feedback is advisory — factual accuracy comes from the BASELINE reference and any USER-PROVIDED CONTEXT.
+
+**JOB TARGET:**
+Title: ${job.title || 'Not specified'}
+Company: ${job.company || 'Not specified'}
+Location: ${job.location || 'Not specified'}
+
+**SCOPE:** ${scope === 'all' ? 'All actionable review feedback (critical issues + quick wins + high-priority suggestions)' : scope === 'critical' ? 'Critical issues only' : 'Quick wins only'}
+
+**REVIEW FEEDBACK TO ADDRESS:**
+${feedback}
+
+${
+  trimmedContext
+    ? `**USER-PROVIDED CONTEXT (use this to fill gaps — treat as factual when applying fixes):**
+${trimmedContext}
+
+When the review asks for missing information (phone, email, URL, metrics, etc.) and the user provided it above, apply it to the WORKING documents. Do not invent values that are not in baseline, working documents, or user context.`
+    : `**USER-PROVIDED CONTEXT:** None supplied. If a fix requires missing data (e.g. phone number, URL, metric) that is not in BASELINE or WORKING documents, SKIP that item and note it in "changes" as skipped — ask the user to supply it.`
+}
+
+**BASELINE RESUME (factual reference — do NOT invent facts beyond this or user context):**
+${JSON.stringify(baselineResume, null, 2)}
+
+${baselineCoverLetter ? `**BASELINE COVER LETTER (factual reference):**
+${JSON.stringify(baselineCoverLetter, null, 2)}` : '**BASELINE COVER LETTER:** Not provided'}
+
+**WORKING RESUME (edit this — return the full updated object):**
+${JSON.stringify(workingResume, null, 2)}
+
+${workingCoverLetter ? `**WORKING COVER LETTER (edit this if cover letter feedback applies):**
+${JSON.stringify(workingCoverLetter, null, 2)}` : '**WORKING COVER LETTER:** Not provided'}
+
+---
+
+**YOUR TASK:**
+Apply ONLY the review feedback listed above to the WORKING documents. Improve wording, keywords, structure, and alignment with the job — without corrupting factual data.
+
+**NON-NEGOTIABLE RULES:**
+
+1. **BASELINE + USER CONTEXT ARE FACTUAL GROUND TRUTH**
+   - Employers, dates, degrees, certifications, job titles, and contact details must match the BASELINE unless the review explicitly flags an error AND you can correct it using information in BASELINE, WORKING documents, or USER-PROVIDED CONTEXT.
+   - NEVER invent employers, projects, metrics, degrees, or dates that are not supported by BASELINE, WORKING data, or USER-PROVIDED CONTEXT.
+
+2. **REVIEW FEEDBACK IS ADVISORY**
+   - If a review suggestion would require fabricating experience or changing verified facts, SKIP that suggestion and note it in "changes" as skipped.
+   - Do not blindly follow feedback that contradicts baseline facts.
+
+3. **MINIMAL, TARGETED EDITS**
+   - Change only what is needed to address the listed feedback.
+   - Preserve all sections, IDs, and entries unless the review explicitly says to remove or restructure them.
+   - Prefer strengthening existing bullets over adding fictional achievements.
+
+4. **RETURN COMPLETE OBJECTS**
+   - Return the FULL modified resume and/or cover letter objects, not partial patches.
+   - Keep the same JSON schema as the working documents.
+
+5. **COVER LETTER**
+   - Only modify the cover letter if feedback applies to it or scope includes cover letter issues.
+   - If no cover letter feedback, set modifiedCoverLetter to null.
+
+**RESPONSE FORMAT (JSON only):**
+\`\`\`json
+{
+  "success": true,
+  "type": "resume" | "coverLetter" | "both",
+  "message": "Brief summary of what was fixed and anything skipped",
+  "changes": ["Specific change 1", "Skipped: reason if any"],
+  "modifiedResume": { /* full resume or null */ },
+  "modifiedCoverLetter": { /* full cover letter or null */ }
+}
+\`\`\`
+
+If nothing can be safely fixed without fabricating data:
+\`\`\`json
+{
+  "success": false,
+  "type": "invalid",
+  "message": "Explain what blocked safe fixes",
+  "changes": []
+}
+\`\`\``;
   }
 
   /**

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useApiKey } from '@/contexts/ApiKeyContext';
+import { normalizeGeminiApiKey } from '@/lib/geminiApiKey';
 
 interface ApiKeyInputProps {
   theme?: 'dark' | 'light';
@@ -21,23 +22,17 @@ export default function ApiKeyInput({ theme = 'dark', onApiKeySet }: ApiKeyInput
     e.preventDefault();
     setError(null);
 
-    if (!inputValue.trim()) {
+    const normalizedKey = normalizeGeminiApiKey(inputValue);
+
+    if (!normalizedKey) {
       setError('Please enter your API key');
       return;
     }
 
-    // Basic validation - Gemini API keys typically start with "AIza"
-    if (!inputValue.trim().startsWith('AIza')) {
-      setError('Invalid API key format. Gemini API keys typically start with "AIza"');
-      return;
-    }
-
     setIsValidating(true);
-    
-    // Simple validation by trying to create a minimal request
+
     try {
-      // Just validate format, don't make actual API call
-      setApiKey(inputValue.trim());
+      setApiKey(normalizedKey);
       setShowInstructions(false);
       onApiKeySet?.();
     } catch (err) {
@@ -154,7 +149,7 @@ export default function ApiKeyInput({ theme = 'dark', onApiKeySet }: ApiKeyInput
                 setInputValue(e.target.value);
                 setError(null);
               }}
-              placeholder="AIza..."
+              placeholder="Paste your API key from Google AI Studio"
               className={`
                 w-full px-4 py-3 rounded-lg border transition-all
                 ${isDark

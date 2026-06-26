@@ -1,6 +1,8 @@
 import { GoogleGenAI } from '@google/genai';
 import { CVData, CoverLetter } from '@/types/cv';
 import { JobDescription } from '@/types/flow';
+import { GEMINI_MODELS } from './geminiModels';
+import { withGeminiRetry } from './geminiRetry';
 
 /**
  * AI-powered CV enhancement using Google Gemini
@@ -57,16 +59,15 @@ export class AIEnhancer {
         }
       }
 
-      const response = await this.ai.models.generateContent({
-        model: 'gemini-2.0-flash-exp',
-        contents: contents,
-        config: {
-            tools: [
-        {urlContext: {}},
-        {googleSearch: {}}
-        ],
-          }
-      });
+      const response = await withGeminiRetry(() =>
+        this.ai.models.generateContent({
+          model: GEMINI_MODELS.FLASH,
+          contents: contents,
+          config: {
+            tools: [{ urlContext: {} }, { googleSearch: {} }],
+          },
+        })
+      );
 
       const text = response.text || "";
 
@@ -384,10 +385,12 @@ Return ONLY a valid JSON object with complete CV data following standard CV stru
         }
       }
 
-      const response = await this.ai.models.generateContent({
-        model: 'gemini-2.0-flash-exp',
-        contents: contents,
-      });
+      const response = await withGeminiRetry(() =>
+        this.ai.models.generateContent({
+          model: GEMINI_MODELS.FLASH,
+          contents: contents,
+        })
+      );
 
       const text = response.text || "";
 
@@ -431,10 +434,12 @@ Return ONLY a valid JSON object with complete CV data following standard CV stru
         }
       }
 
-      const response = await this.ai.models.generateContent({
-        model: 'gemini-2.0-flash-exp',
-        contents: contents,
-      });
+      const response = await withGeminiRetry(() =>
+        this.ai.models.generateContent({
+          model: GEMINI_MODELS.FLASH,
+          contents: contents,
+        })
+      );
 
       const text = response.text || "";
 
