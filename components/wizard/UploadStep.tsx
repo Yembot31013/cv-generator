@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { CVData } from "@/types/cv";
-import { useApiKey } from "@/contexts/ApiKeyContext";
+import { useAiSettings } from "@/contexts/ApiKeyContext";
 import StickFigureLoader from "./StickFigureLoader";
 
 interface UploadStepProps {
@@ -16,7 +16,7 @@ export default function UploadStep({
   onNext,
   theme = "dark",
 }: UploadStepProps) {
-  const { apiKey } = useApiKey();
+  const { apiKey, proModel } = useAiSettings();
   const isDark = theme === "dark";
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -115,7 +115,7 @@ export default function UploadStep({
           );
         }
         const { createAICVExtractor } = await import("@/lib/aiCVExtractor");
-        const extractor = createAICVExtractor(apiKey);
+        const extractor = createAICVExtractor(apiKey, proModel);
         const aiExtractedData = await extractor.extractFromFiles(otherFiles);
 
         // Merge with JSON data if exists

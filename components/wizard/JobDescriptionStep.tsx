@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { JobDescription } from "@/types/flow";
-import { useApiKey } from "@/contexts/ApiKeyContext";
+import { useAiSettings } from "@/contexts/ApiKeyContext";
 
 interface JobDescriptionStepProps {
   onJobDescriptionSubmit: (jobDesc: JobDescription) => void;
@@ -17,7 +17,7 @@ export default function JobDescriptionStep({
   onNext,
   theme = "dark",
 }: JobDescriptionStepProps) {
-  const { apiKey } = useApiKey();
+  const { apiKey, flashModel } = useAiSettings();
   const isDark = theme === "dark";
   const [jobData, setJobData] = useState<JobDescription>({
     title: "",
@@ -102,7 +102,7 @@ export default function JobDescriptionStep({
       const { createJobDescriptionParser } = await import(
         "@/lib/jobDescriptionParser"
       );
-      const parser = createJobDescriptionParser(apiKey);
+      const parser = createJobDescriptionParser(apiKey, flashModel);
       const parsed = await parser.parseJobDescription(rawText);
 
       setParsedData(parsed);

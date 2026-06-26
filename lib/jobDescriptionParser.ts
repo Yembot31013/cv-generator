@@ -1,6 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
 import { JobDescription } from '@/types/flow';
-import { GEMINI_MODELS } from './geminiModels';
 import { withGeminiRetry } from './geminiRetry';
 
 /**
@@ -9,9 +8,11 @@ import { withGeminiRetry } from './geminiRetry';
  */
 export class JobDescriptionParser {
   private ai: GoogleGenAI;
+  private readonly modelId: string;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, modelId: string) {
     this.ai = new GoogleGenAI({ apiKey });
+    this.modelId = modelId;
   }
 
   /**
@@ -23,7 +24,7 @@ export class JobDescriptionParser {
     try {
       const response = await withGeminiRetry(() =>
         this.ai.models.generateContent({
-          model: GEMINI_MODELS.FLASH,
+          model: this.modelId,
           contents: prompt,
           config: {
             tools: [{ urlContext: {} }, { googleSearch: {} }],
@@ -246,9 +247,9 @@ Parse the text above and return the structured JSON.`;
 /**
  * Create parser instance with API key
  */
-export function createJobDescriptionParser(apiKey: string): JobDescriptionParser {
+export function createJobDescriptionParser(apiKey: string, modelId: string): JobDescriptionParser {
   if (!apiKey) {
     throw new Error('Gemini API key is required');
   }
-  return new JobDescriptionParser(apiKey);
+  return new JobDescriptionParser(apiKey, modelId);
 }

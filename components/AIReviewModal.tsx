@@ -15,7 +15,7 @@ import {
 } from "@/types/review";
 import { createAIReviewer, ReviewSession } from "@/lib/aiReviewer";
 import { createAIModifier, ReviewFixScope, getReviewFixGroups, REVIEW_FIX_SCOPE_LABELS } from "@/lib/aiModifier";
-import { useApiKey } from "@/contexts/ApiKeyContext";
+import { useAiSettings } from "@/contexts/ApiKeyContext";
 
 interface AIReviewModalProps {
   isOpen: boolean;
@@ -857,7 +857,7 @@ export default function AIReviewModal({
   theme = "dark",
 }: AIReviewModalProps) {
   const isDark = theme === "dark";
-  const { apiKey } = useApiKey();
+  const { apiKey, flashModel } = useAiSettings();
   const [isLoading, setIsLoading] = useState(false);
   const [isFixing, setIsFixing] = useState(false);
   const [fixScope, setFixScope] = useState<ReviewFixScope | null>(null);
@@ -918,7 +918,7 @@ export default function AIReviewModal({
     setError(null);
 
     try {
-      const reviewer = createAIReviewer(apiKey);
+      const reviewer = createAIReviewer(apiKey, flashModel);
       // Pass the current session for context-aware re-analysis
       const { result, session: updatedSession } =
         await reviewer.reviewApplicationMaterials(
@@ -974,7 +974,7 @@ export default function AIReviewModal({
     setFixMessage(null);
 
     try {
-      const modifier = createAIModifier(apiKey);
+      const modifier = createAIModifier(apiKey, flashModel);
       const workingCoverLetter = toCoverLetterObject(coverLetter);
 
       const result = await modifier.fixFromReview(

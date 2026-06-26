@@ -2,7 +2,6 @@ import { GoogleGenAI } from '@google/genai';
 import { CVData } from '@/types/cv';
 import { JobDescription } from '@/types/flow';
 import { AIReviewResult, getScoreLevel } from '@/types/review';
-import { GEMINI_MODELS } from './geminiModels';
 import { withGeminiRetry } from './geminiRetry';
 
 /**
@@ -28,9 +27,11 @@ export interface ReviewSession {
  */
 export class AIReviewer {
   private ai: GoogleGenAI;
+  private readonly modelId: string;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, modelId: string) {
     this.ai = new GoogleGenAI({ apiKey });
+    this.modelId = modelId;
   }
 
   /**
@@ -58,7 +59,7 @@ export class AIReviewer {
       if (isReAnalysis && session!.history.length > 0) {
         // Use chat API with history for re-analysis
         const chat = this.ai.chats.create({
-          model: GEMINI_MODELS.FLASH,
+          model: this.modelId,
           history: session!.history,
         });
 
@@ -83,7 +84,7 @@ export class AIReviewer {
         // First review - use single generation
         const response = await withGeminiRetry(() =>
           this.ai.models.generateContent({
-            model: GEMINI_MODELS.FLASH,
+            model: this.modelId,
             contents: [{ text: prompt }],
             config: {
               tools: [{ urlContext: {} }, { googleSearch: {} }],
@@ -872,10 +873,10 @@ A resume with placeholder contact info is USELESS. The score should reflect that
 /**
  * Initialize AI Reviewer with API key
  */
-export function createAIReviewer(apiKey: string): AIReviewer {
+export function createAIReviewer(apiKey: string, modelId: string): AIReviewer {
   if (!apiKey) {
     throw new Error('Gemini API key is required');
   }
-  return new AIReviewer(apiKey);
+  return new AIReviewer(apiKey, modelId);
 }
 

@@ -1,6 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
 import { CVData } from '@/types/cv';
-import { GEMINI_MODELS } from './geminiModels';
 import { withGeminiRetry } from './geminiRetry';
 
 /**
@@ -9,9 +8,11 @@ import { withGeminiRetry } from './geminiRetry';
  */
 export class AICVExtractor {
   private ai: GoogleGenAI;
+  private readonly modelId: string;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, modelId: string) {
     this.ai = new GoogleGenAI({ apiKey });
+    this.modelId = modelId;
   }
 
   /**
@@ -39,7 +40,7 @@ export class AICVExtractor {
       // Use the Pro model which automatically enables thinking mode
       const response = await withGeminiRetry(() =>
         this.ai.models.generateContent({
-          model: GEMINI_MODELS.PRO,
+          model: this.modelId,
           contents: contents,
           config: {
             tools: [{ urlContext: {} }, { googleSearch: {} }],
@@ -308,9 +309,9 @@ Analyze ${fileText} carefully and return the complete JSON structure.`;
 /**
  * Create AI CV Extractor with API key
  */
-export function createAICVExtractor(apiKey: string): AICVExtractor {
+export function createAICVExtractor(apiKey: string, modelId: string): AICVExtractor {
   if (!apiKey) {
     throw new Error('Gemini API key is required');
   }
-  return new AICVExtractor(apiKey);
+  return new AICVExtractor(apiKey, modelId);
 }

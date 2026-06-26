@@ -42,7 +42,11 @@ Users provide their own **Google Gemini API key** via the in-app settings UI. Ke
 
 All AI requests run **client-side** from your browser directly to Google's Gemini API. You are encouraged to review the source code to verify this.
 
+> **Multi-provider support (planned):** Today only **Google Gemini** is wired end-to-end. Support for other providers — OpenAI, Anthropic (Claude), and others — is on the roadmap. See [Multi-provider AI](#3-multi-provider-ai-support-planned) under open feature requests.
+
 **Supported key formats:** Legacy `AIza…` keys and newer `AQ.…` auth keys from [Google AI Studio](https://aistudio.google.com/apikey).
+
+**Model selection:** After adding a key, use the **AI Models** panel to pick Gemini versions per task. Only models marked `active: true` in `lib/aiModels.ts` appear in the dropdowns. To add or retire models, update that catalog — stored preferences auto-migrate when a model is deactivated.
 
 ---
 
@@ -58,13 +62,18 @@ npm install
 npm run dev
 ```
 
-### 2. Configure Your Gemini API Key
+### 2. Configure AI Settings
 
 1. Get an API key from [Google AI Studio](https://aistudio.google.com/apikey)
-2. Open the app and paste your key in the **Gemini API Key** settings panel
-3. The key stays in your browser — no `.env` file required for normal use
+2. Open the app and click **AI Settings** in the wizard header
+3. Paste your Gemini API key — it is stored **only in your browser** (`localStorage`), never on a server
+4. Choose which **Gemini models** power each task:
+   - **Fast model** — enhancement, review, job parsing, cover letter, and edits
+   - **Extraction model** — reading PDF/DOCX uploads (recommended: Gemini 2.5 Pro)
 
-> Optional: You can also set `NEXT_PUBLIC_GEMINI_API_KEY` in `.env.local` for development.
+Model preferences are saved locally alongside your API key. The app only lists **active, supported** models from `lib/aiModels.ts` — retired models are migrated to the current default automatically.
+
+> **Note:** This app does not use `.env` files. All configuration is done in the browser.
 
 ### 3. Use the AI-Powered Workflow
 
@@ -150,7 +159,8 @@ cv-generator/
 │   ├── CVWizard.tsx                # Multi-step wizard orchestrator
 │   ├── AIReviewModal.tsx           # ATS review + Fix with AI dialog
 │   ├── AIModifierFloatingBar.tsx   # Natural-language CV editor
-│   ├── ApiKeyInput.tsx             # In-browser Gemini API key setup
+│   ├── ApiKeyInput.tsx             # API key + model settings UI
+│   ├── AiModelSettings.tsx         # Flash / Pro model pickers
 │   ├── CoverLetter.tsx             # Cover letter preview
 │   ├── wizard/                     # Upload, enhance, template steps
 │   └── cv-templates/
@@ -165,7 +175,8 @@ cv-generator/
 │   ├── aiReviewer.ts               # ATS review & scoring
 │   ├── aiModifier.ts               # Modifier + Fix from review
 │   ├── resumePdf.ts                # PDF export (vector, ATS-friendly)
-│   ├── geminiModels.ts             # Centralized model identifiers
+│   ├── aiModels.ts                 # Supported model catalog & resolution
+│   ├── geminiApiKey.ts             # API key normalization
 │   ├── geminiRetry.ts              # Transient API error retry
 │   └── jobDescriptionParser.ts     # Job posting parser
 │
@@ -175,7 +186,8 @@ cv-generator/
 │   └── review.ts                   # AI review types
 │
 └── contexts/
-    └── ApiKeyContext.tsx           # Client-side API key state
+    ├── AiSettingsContext.tsx       # API key + model preferences (localStorage)
+    └── ApiKeyContext.tsx           # Re-exports for backward compatibility
 ```
 
 ---
@@ -227,7 +239,7 @@ The app guides you through a multi-step wizard (`CVWizard.tsx`):
 
 | Step | What happens |
 |------|----------------|
-| API Key | Paste your Gemini key (stored locally in browser) |
+| API Key & Models | Paste Gemini key and choose flash/pro model versions |
 | Upload | Upload PDF/DOCX/JSON — AI extracts your CV data |
 | Job Description | Paste or parse a job posting |
 | AI Enhance | Tailor and enhance your resume for the role |
@@ -237,7 +249,7 @@ The app guides you through a multi-step wizard (`CVWizard.tsx`):
 
 ## 🔧 Tech Stack
 
-- **AI Engine**: Google Gemini (`gemini-2.5-pro` for extraction, `gemini-2.5-flash` for enhancement/review/modify)
+- **AI Engine**: Google Gemini (only provider today) — user-selectable Gemini models (`lib/aiModels.ts`); defaults: `gemini-2.5-pro` for extraction, `gemini-2.5-flash` for enhancement/review/modify. OpenAI, Claude, and other providers: planned — see [Multi-Provider AI](#3-multi-provider-ai-support-planned)
 - **PDF Export**: jsPDF vector generation (`lib/resumePdf.ts`) — selectable text, template-themed accents
 - **Framework**: Next.js 16.1.1 with App Router
 - **UI Library**: React 19.2.3
@@ -414,8 +426,21 @@ We welcome contributions! Here are areas that still need work:
   - Register in `TemplateSelectionStep.tsx` and `lib/resumePdf.ts` theme map
   - Dark/light theme support
 
+#### 3. **Multi-Provider AI Support** 🔌 *(planned)*
+- **Status**: Gemini only — model **version** picker is shipped (`lib/aiModels.ts`, `AiModelSettings.tsx`); other providers are not yet integrated
+- **Goal**: Let users choose their AI provider (Gemini, OpenAI, Anthropic Claude, etc.) and pick active model versions per task, same as today’s flash vs extraction roles
+- **What's needed**:
+  - Extend `AiProvider` in `lib/aiModels.ts` beyond `'gemini'` with per-provider model catalogs and `active` flags
+  - Provider selector + separate API key storage in `AiSettingsContext` (browser `localStorage`, no `.env`)
+  - Shared provider interface (or thin adapter layer) so `aiCVExtractor`, `aiEnhancer`, `aiReviewer`, `aiModifier`, and `jobDescriptionParser` call the selected backend
+  - Client-side SDK/API clients for each provider (OpenAI, Anthropic, etc.) with the same retry/error-handling patterns as `lib/geminiRetry.ts`
+  - UI updates in `ApiKeyInput` / `AiModelSettings` — provider tabs, key format hints, and role-based model dropdowns filtered to supported active models
+  - Documentation and transparency notes per provider (where keys are sent, CORS/browser constraints)
+- **Groundwork already in place**: `lib/aiModels.ts` role-based catalog, `resolveModelId()` migration, and `useAiSettings()` for persisted preferences
+
 ### ✅ Recently Shipped
 
+- **AI model selection (Gemini)** — Per-task flash vs pro model pickers; only active models in UI; auto-migration when models retire
 - **PDF Export** — `lib/resumePdf.ts`; download from template step with per-template accent themes
 - **Fix with AI** — Review modal dialog with scoped fixes, user context input, and baseline fact preservation (`lib/aiModifier.ts`)
 

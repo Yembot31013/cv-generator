@@ -2,7 +2,6 @@ import { GoogleGenAI } from '@google/genai';
 import { CVData, CoverLetter } from '@/types/cv';
 import { JobDescription } from '@/types/flow';
 import { AIReviewResult } from '@/types/review';
-import { GEMINI_MODELS } from './geminiModels';
 import { withGeminiRetry } from './geminiRetry';
 
 /**
@@ -105,9 +104,11 @@ function formatReviewFeedback(groups: ReviewFixGroup[]): string {
  */
 export class AIModifier {
   private ai: GoogleGenAI;
+  private readonly modelId: string;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, modelId: string) {
     this.ai = new GoogleGenAI({ apiKey });
+    this.modelId = modelId;
   }
 
   /**
@@ -161,7 +162,7 @@ export class AIModifier {
 
       const response = await withGeminiRetry(() =>
         this.ai.models.generateContent({
-          model: GEMINI_MODELS.FLASH,
+          model: this.modelId,
           contents: contents,
           config: {
             tools: [{ urlContext: {} }, { googleSearch: {} }],
@@ -235,7 +236,7 @@ export class AIModifier {
 
       const response = await withGeminiRetry(() =>
         this.ai.models.generateContent({
-          model: GEMINI_MODELS.FLASH,
+          model: this.modelId,
           contents,
         })
       );
@@ -555,10 +556,10 @@ If nothing can be safely fixed without fabricating data:
 /**
  * Initialize AI Modifier with API key
  */
-export function createAIModifier(apiKey: string): AIModifier {
+export function createAIModifier(apiKey: string, modelId: string): AIModifier {
   if (!apiKey) {
     throw new Error('Gemini API key is required');
   }
-  return new AIModifier(apiKey);
+  return new AIModifier(apiKey, modelId);
 }
 

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { CVData, CoverLetter } from "@/types/cv";
 import { JobDescription } from "@/types/flow";
 import { createAIModifier, ModificationResult } from "@/lib/aiModifier";
-import { useApiKey } from "@/contexts/ApiKeyContext";
+import { useAiSettings } from "@/contexts/ApiKeyContext";
 
 interface AIModifierFloatingBarProps {
   currentResume: CVData;
@@ -26,7 +26,7 @@ export default function AIModifierFloatingBar({
   theme = "dark",
 }: AIModifierFloatingBarProps) {
   const isDark = theme === "dark";
-  const { apiKey } = useApiKey();
+  const { apiKey, flashModel } = useAiSettings();
   const [isExpanded, setIsExpanded] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [isModifying, setIsModifying] = useState(false);
@@ -70,7 +70,7 @@ export default function AIModifierFloatingBar({
     setResult(null);
 
     try {
-      const modifier = createAIModifier(apiKey);
+      const modifier = createAIModifier(apiKey, flashModel);
       const modResult = await modifier.modify(
         prompt,
         currentResume,

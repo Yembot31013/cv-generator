@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useApiKey } from '@/contexts/ApiKeyContext';
 import { normalizeGeminiApiKey } from '@/lib/geminiApiKey';
+import AiModelSettings from '@/components/AiModelSettings';
 
 interface ApiKeyInputProps {
   theme?: 'dark' | 'light';
@@ -50,30 +51,33 @@ export default function ApiKeyInput({ theme = 'dark', onApiKeySet }: ApiKeyInput
 
   if (apiKey && !showInstructions) {
     return (
-      <div className={`rounded-xl p-6 ${isDark ? 'bg-gray-800/50 border border-gray-700' : 'bg-gray-100 border border-gray-300'}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-            <div>
-              <p className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                API Key Configured
-              </p>
-              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                {apiKey.substring(0, 10)}...{apiKey.substring(apiKey.length - 4)}
-              </p>
+      <div className="space-y-4">
+        <div className={`rounded-xl p-6 ${isDark ? 'bg-gray-800/50 border border-gray-700' : 'bg-gray-100 border border-gray-300'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+              <div>
+                <p className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  API Key Configured
+                </p>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {apiKey.substring(0, 10)}...{apiKey.substring(apiKey.length - 4)}
+                </p>
+              </div>
             </div>
+            <button
+              onClick={handleRemove}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                isDark
+                  ? 'text-red-400 hover:bg-red-500/20 border border-red-500/30'
+                  : 'text-red-600 hover:bg-red-50 border border-red-300'
+              }`}
+            >
+              Remove
+            </button>
           </div>
-          <button
-            onClick={handleRemove}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              isDark
-                ? 'text-red-400 hover:bg-red-500/20 border border-red-500/30'
-                : 'text-red-600 hover:bg-red-50 border border-red-300'
-            }`}
-          >
-            Remove
-          </button>
         </div>
+        <AiModelSettings theme={theme} compact />
       </div>
     );
   }
@@ -100,7 +104,7 @@ export default function ApiKeyInput({ theme = 'dark', onApiKeySet }: ApiKeyInput
                 <li>
                   Click{' '}
                   <a
-                    href="https://makersuite.google.com/app/apikey"
+                    href="https://aistudio.google.com/apikey"
                     target="_blank"
                     rel="noopener noreferrer"
                     className={`font-semibold underline ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'}`}
@@ -117,7 +121,7 @@ export default function ApiKeyInput({ theme = 'dark', onApiKeySet }: ApiKeyInput
 
             <div className="pt-2">
               <a
-                href="https://makersuite.google.com/app/apikey"
+                href="https://aistudio.google.com/apikey"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { CVData } from "@/types/cv";
 import { JobDescription } from "@/types/flow";
-import { useApiKey } from "@/contexts/ApiKeyContext";
+import { useAiSettings } from "@/contexts/ApiKeyContext";
 
 interface AIEnhancementStepProps {
   partialCV: Partial<CVData>;
@@ -24,7 +24,7 @@ export default function AIEnhancementStep({
   onNext,
   theme = "dark",
 }: AIEnhancementStepProps) {
-  const { apiKey } = useApiKey();
+  const { apiKey, flashModel } = useAiSettings();
   const isDark = theme === "dark";
   const [status, setStatus] = useState<
     "idle" | "processing" | "complete" | "error"
@@ -61,7 +61,7 @@ export default function AIEnhancementStep({
 
       // Import and run AI enhancement
       const { createAIEnhancer } = await import("@/lib/aiEnhancer");
-      const enhancer = createAIEnhancer(apiKey);
+      const enhancer = createAIEnhancer(apiKey, flashModel);
 
       setProgress(30);
 

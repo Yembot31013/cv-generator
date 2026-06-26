@@ -235,7 +235,7 @@ export default function CVWizard() {
                   isDark ? "text-white" : "text-gray-900"
                 }`}
               >
-                API Key Settings
+                AI Settings
               </h2>
               <button
                 onClick={() => setShowApiKeyInput(false)}

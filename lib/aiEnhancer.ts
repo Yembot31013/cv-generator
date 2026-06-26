@@ -1,7 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { CVData, CoverLetter } from '@/types/cv';
 import { JobDescription } from '@/types/flow';
-import { GEMINI_MODELS } from './geminiModels';
 import { withGeminiRetry } from './geminiRetry';
 
 /**
@@ -9,9 +8,11 @@ import { withGeminiRetry } from './geminiRetry';
  */
 export class AIEnhancer {
   private ai: GoogleGenAI;
+  private readonly modelId: string;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, modelId: string) {
     this.ai = new GoogleGenAI({ apiKey });
+    this.modelId = modelId;
   }
 
   /**
@@ -61,7 +62,7 @@ export class AIEnhancer {
 
       const response = await withGeminiRetry(() =>
         this.ai.models.generateContent({
-          model: GEMINI_MODELS.FLASH,
+          model: this.modelId,
           contents: contents,
           config: {
             tools: [{ urlContext: {} }, { googleSearch: {} }],
@@ -387,7 +388,7 @@ Return ONLY a valid JSON object with complete CV data following standard CV stru
 
       const response = await withGeminiRetry(() =>
         this.ai.models.generateContent({
-          model: GEMINI_MODELS.FLASH,
+          model: this.modelId,
           contents: contents,
         })
       );
@@ -436,7 +437,7 @@ Return ONLY a valid JSON object with complete CV data following standard CV stru
 
       const response = await withGeminiRetry(() =>
         this.ai.models.generateContent({
-          model: GEMINI_MODELS.FLASH,
+          model: this.modelId,
           contents: contents,
         })
       );
@@ -560,9 +561,9 @@ OR if you prefer, return the cover letter as plain text with proper formatting. 
 /**
  * Initialize AI Enhancer with API key
  */
-export function createAIEnhancer(apiKey: string): AIEnhancer {
+export function createAIEnhancer(apiKey: string, modelId: string): AIEnhancer {
   if (!apiKey) {
     throw new Error('Gemini API key is required');
   }
-  return new AIEnhancer(apiKey);
+  return new AIEnhancer(apiKey, modelId);
 }
